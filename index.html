@@ -1,414 +1,855 @@
 <!doctype html>
 <html lang="en" data-theme="light">
+
 <head>
-<meta charset="UTF-8"/>
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
-<meta http-equiv="Pragma" content="no-cache"/>
-<meta http-equiv="Expires" content="0"/>
-<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>Druid Entity Sandbox</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<style>
-:root,[data-theme="light"]{--bg:#f7f6f2;--surface:#f9f8f5;--surface2:#fbfbf9;--offset:#f0ede8;--border:#d4d1ca;--text:#28251d;--muted:#6f6b63;--primary:#01696f;--primary-h:#0c4e54;--primary-soft:#d1e8e6;--success:#437a22;--error:#a12c7b;--code:#1e293b;--codebg:#eeece6;--sh:0 1px 3px rgba(0,0,0,.08);--r:8px;--rl:12px}
-[data-theme="dark"]{--bg:#171614;--surface:#1c1b19;--surface2:#201f1d;--offset:#252320;--border:#393836;--text:#e6e2da;--muted:#908c84;--primary:#4f98a3;--primary-h:#73b4bd;--primary-soft:#1e3638;--success:#82b85d;--error:#d87db3;--code:#e2e8f0;--codebg:#0e1622;--sh:0 1px 3px rgba(0,0,0,.3)}
-*{box-sizing:border-box;margin:0;padding:0}body{font-family:Inter,system-ui,sans-serif;font-size:.875rem;color:var(--text);background:var(--bg);min-height:100vh}button,textarea,input{font:inherit;color:inherit}input,textarea{width:100%;border:1px solid var(--border);background:var(--bg);color:var(--text);border-radius:var(--r);padding:.45rem .7rem;transition:border-color .15s}input:focus,textarea:focus{outline:none;border-color:var(--primary)}textarea{resize:vertical;font-family:"IBM Plex Mono",monospace;font-size:.78rem;line-height:1.65}.app{display:grid;grid-template-columns:minmax(390px,650px) 1fr;min-height:100vh}.panel{padding:1rem 1.1rem;overflow:auto}.left{border-right:1px solid var(--border);background:var(--surface);display:flex;flex-direction:column;gap:.85rem}.right{background:var(--surface2)}.topbar{display:flex;justify-content:space-between;align-items:flex-start}.tbar-title{font-size:.92rem;font-weight:700}.tbar-sub{font-size:.72rem;color:var(--muted);margin-top:.1rem}.theme-btn{background:none;border:1px solid var(--border);border-radius:var(--r);width:30px;height:30px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}.theme-btn:hover{background:var(--offset)}.sec{display:flex;flex-direction:column;gap:.45rem}.sec-hdr{display:flex;align-items:center;justify-content:space-between}.sec-label{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted)}.btn{display:inline-flex;align-items:center;gap:.28rem;border:1px solid var(--border);background:var(--surface2);color:var(--text);border-radius:var(--r);height:30px;padding:0 .65rem;font-size:.78rem;cursor:pointer;transition:background .12s;white-space:nowrap}.btn:hover{background:var(--offset)}.btn.primary{background:var(--primary);color:#fff;border-color:var(--primary)}.btn.primary:hover{background:var(--primary-h)}.btn.ghost{background:transparent;border-color:transparent;color:var(--muted)}.btn.ghost:hover{background:var(--offset);color:var(--text)}.btn.sm{height:26px;font-size:.73rem;padding:0 .5rem}.icon-btn{background:none;border:none;cursor:pointer;padding:.15rem .28rem;color:var(--muted);border-radius:4px}.icon-btn:hover{color:var(--error);background:color-mix(in srgb,var(--error) 10%,transparent)}.import-area textarea{min-height:90px;border-style:dashed}.import-btns{display:flex;gap:.35rem;flex-wrap:wrap}.ec{border:1px solid var(--border);border-radius:var(--rl);background:var(--surface2);overflow:hidden;box-shadow:var(--sh)}.ec-hdr{display:flex;align-items:center;gap:.4rem;padding:.38rem .65rem;background:var(--offset);cursor:pointer;user-select:none}.ec-name{font-family:"IBM Plex Mono",monospace;font-size:.77rem;font-weight:600;color:var(--primary);flex:1}.ec-badge{font-size:.65rem;background:var(--primary-soft);color:var(--primary);border-radius:4px;padding:.04rem .32rem}.chevron{font-style:normal;font-size:.7rem;display:inline-block;transition:transform .15s}.chevron.open{transform:rotate(90deg)}.ec-body{display:none;padding:.6rem .7rem}.ec-body.open{display:block}.ec-body textarea{min-height:120px}.ec-toolbar{display:flex;gap:.3rem;margin-top:.35rem;flex-wrap:wrap}.ec-status{font-size:.72rem;min-height:.9rem;margin-top:.2rem}.ec-status.ok{color:var(--success)}.ec-status.err{color:var(--error)}.vt-row{display:flex;gap:.35rem;align-items:center;margin-bottom:.32rem}.vt-row input{font-family:"IBM Plex Mono",monospace;font-size:.78rem}#verifierCode{min-height:230px}.run-status{font-size:.75rem;min-height:.9rem}.run-status.ok{color:var(--success)}.run-status.err{color:var(--error)}hr{border:none;border-top:1px solid var(--border)}.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:.8rem;margin-bottom:.7rem;box-shadow:var(--sh)}.card-title{font-size:.82rem;font-weight:600;margin-bottom:.25rem}.card-sub{font-size:.72rem;color:var(--muted);margin-bottom:.55rem}.code-out{background:var(--codebg);border:1px solid var(--border);border-radius:var(--r);padding:.65rem .85rem;font-family:"IBM Plex Mono",monospace;font-size:.77rem;line-height:1.65;color:var(--code);white-space:pre-wrap;word-break:break-all;max-height:420px;overflow:auto}code{font-family:"IBM Plex Mono",monospace;font-size:.82em;background:var(--codebg);color:var(--code);border-radius:3px;padding:.06em .28em}.pills{display:flex;flex-wrap:wrap;gap:.3rem}.pill{font-family:"IBM Plex Mono",monospace;font-size:.7rem;background:var(--primary-soft);color:var(--primary);border-radius:5px;padding:.07rem .38rem;border:1px solid color-mix(in srgb,var(--primary) 25%,transparent)}
-</style>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <title>Druid Entity Sandbox</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap"
+    rel="stylesheet">
+  <style>
+    :root,
+    [data-theme="light"] {
+      --bg: #f7f6f2;
+      --surface: #f9f8f5;
+      --surface2: #fbfbf9;
+      --offset: #f0ede8;
+      --border: #d4d1ca;
+      --text: #28251d;
+      --muted: #6f6b63;
+      --primary: #01696f;
+      --primary-h: #0c4e54;
+      --primary-soft: #d1e8e6;
+      --success: #437a22;
+      --error: #a12c7b;
+      --code: #1e293b;
+      --codebg: #eeece6;
+      --sh: 0 1px 3px rgba(0, 0, 0, .08);
+      --r: 8px;
+      --rl: 12px
+    }
+
+    [data-theme="dark"] {
+      --bg: #171614;
+      --surface: #1c1b19;
+      --surface2: #201f1d;
+      --offset: #252320;
+      --border: #393836;
+      --text: #e6e2da;
+      --muted: #908c84;
+      --primary: #4f98a3;
+      --primary-h: #73b4bd;
+      --primary-soft: #1e3638;
+      --success: #82b85d;
+      --error: #d87db3;
+      --code: #e2e8f0;
+      --codebg: #0e1622;
+      --sh: 0 1px 3px rgba(0, 0, 0, .3)
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0
+    }
+
+    body {
+      font-family: Inter, system-ui, sans-serif;
+      font-size: .875rem;
+      color: var(--text);
+      background: var(--bg);
+      min-height: 100vh
+    }
+
+    button,
+    textarea,
+    input {
+      font: inherit;
+      color: inherit
+    }
+
+    input,
+    textarea {
+      width: 100%;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+      border-radius: var(--r);
+      padding: .45rem .7rem;
+      transition: border-color .15s
+    }
+
+    input:focus,
+    textarea:focus {
+      outline: none;
+      border-color: var(--primary)
+    }
+
+    textarea {
+      resize: vertical;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: .78rem;
+      line-height: 1.65
+    }
+
+    .app {
+      display: grid;
+      grid-template-columns: minmax(390px, 650px) 1fr;
+      min-height: 100vh
+    }
+
+    .panel {
+      padding: 1rem 1.1rem;
+      overflow: auto
+    }
+
+    .left {
+      border-right: 1px solid var(--border);
+      background: var(--surface);
+      display: flex;
+      flex-direction: column;
+      gap: .85rem
+    }
+
+    .right {
+      background: var(--surface2)
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start
+    }
+
+    .tbar-title {
+      font-size: .92rem;
+      font-weight: 700
+    }
+
+    .tbar-sub {
+      font-size: .72rem;
+      color: var(--muted);
+      margin-top: .1rem
+    }
+
+    .theme-btn {
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      width: 30px;
+      height: 30px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0
+    }
+
+    .theme-btn:hover {
+      background: var(--offset)
+    }
+
+    .sec {
+      display: flex;
+      flex-direction: column;
+      gap: .45rem
+    }
+
+    .sec-hdr {
+      display: flex;
+      align-items: center;
+      justify-content: space-between
+    }
+
+    .sec-label {
+      font-size: .68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      color: var(--muted)
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: .28rem;
+      border: 1px solid var(--border);
+      background: var(--surface2);
+      color: var(--text);
+      border-radius: var(--r);
+      height: 30px;
+      padding: 0 .65rem;
+      font-size: .78rem;
+      cursor: pointer;
+      transition: background .12s;
+      white-space: nowrap
+    }
+
+    .btn:hover {
+      background: var(--offset)
+    }
+
+    .btn.primary {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary)
+    }
+
+    .btn.primary:hover {
+      background: var(--primary-h)
+    }
+
+    .btn.ghost {
+      background: transparent;
+      border-color: transparent;
+      color: var(--muted)
+    }
+
+    .btn.ghost:hover {
+      background: var(--offset);
+      color: var(--text)
+    }
+
+    .btn.sm {
+      height: 26px;
+      font-size: .73rem;
+      padding: 0 .5rem
+    }
+
+    .icon-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: .15rem .28rem;
+      color: var(--muted);
+      border-radius: 4px
+    }
+
+    .icon-btn:hover {
+      color: var(--error);
+      background: color-mix(in srgb, var(--error) 10%, transparent)
+    }
+
+    .import-area textarea {
+      min-height: 90px;
+      border-style: dashed
+    }
+
+    .import-btns {
+      display: flex;
+      gap: .35rem;
+      flex-wrap: wrap
+    }
+
+    .ec {
+      border: 1px solid var(--border);
+      border-radius: var(--rl);
+      background: var(--surface2);
+      overflow: hidden;
+      box-shadow: var(--sh)
+    }
+
+    .ec-hdr {
+      display: flex;
+      align-items: center;
+      gap: .4rem;
+      padding: .38rem .65rem;
+      background: var(--offset);
+      cursor: pointer;
+      user-select: none
+    }
+
+    .ec-name {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: .77rem;
+      font-weight: 600;
+      color: var(--primary);
+      flex: 1
+    }
+
+    .ec-badge {
+      font-size: .65rem;
+      background: var(--primary-soft);
+      color: var(--primary);
+      border-radius: 4px;
+      padding: .04rem .32rem
+    }
+
+    .chevron {
+      font-style: normal;
+      font-size: .7rem;
+      display: inline-block;
+      transition: transform .15s
+    }
+
+    .chevron.open {
+      transform: rotate(90deg)
+    }
+
+    .ec-body {
+      display: none;
+      padding: .6rem .7rem
+    }
+
+    .ec-body.open {
+      display: block
+    }
+
+    .ec-body textarea {
+      min-height: 120px
+    }
+
+    .ec-toolbar {
+      display: flex;
+      gap: .3rem;
+      margin-top: .35rem;
+      flex-wrap: wrap
+    }
+
+    .ec-status {
+      font-size: .72rem;
+      min-height: .9rem;
+      margin-top: .2rem
+    }
+
+    .ec-status.ok {
+      color: var(--success)
+    }
+
+    .ec-status.err {
+      color: var(--error)
+    }
+
+    .vt-row {
+      display: flex;
+      gap: .35rem;
+      align-items: center;
+      margin-bottom: .32rem
+    }
+
+    .vt-row input {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: .78rem
+    }
+
+    #verifierCode {
+      min-height: 230px
+    }
+
+    .run-status {
+      font-size: .75rem;
+      min-height: .9rem
+    }
+
+    .run-status.ok {
+      color: var(--success)
+    }
+
+    .run-status.err {
+      color: var(--error)
+    }
+
+    hr {
+      border: none;
+      border-top: 1px solid var(--border)
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--rl);
+      padding: .8rem;
+      margin-bottom: .7rem;
+      box-shadow: var(--sh)
+    }
+
+    .card-title {
+      font-size: .82rem;
+      font-weight: 600;
+      margin-bottom: .25rem
+    }
+
+    .card-sub {
+      font-size: .72rem;
+      color: var(--muted);
+      margin-bottom: .55rem
+    }
+
+    .code-out {
+      background: var(--codebg);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: .65rem .85rem;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: .77rem;
+      line-height: 1.65;
+      color: var(--code);
+      white-space: pre-wrap;
+      word-break: break-all;
+      max-height: 420px;
+      overflow: auto
+    }
+
+    code {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: .82em;
+      background: var(--codebg);
+      color: var(--code);
+      border-radius: 3px;
+      padding: .06em .28em
+    }
+
+    .pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .3rem
+    }
+
+    .pill {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: .7rem;
+      background: var(--primary-soft);
+      color: var(--primary);
+      border-radius: 5px;
+      padding: .07rem .38rem;
+      border: 1px solid color-mix(in srgb, var(--primary) 25%, transparent)
+    }
+  </style>
 </head>
+
 <body>
-<div class="app">
-<div class="panel left">
-  <div class="topbar">
-    <div><div class="tbar-title">Druid Entity Sandbox</div><div class="tbar-sub">Paste entities → set targets → run → inspect merged output and variables</div></div>
-    <button class="theme-btn" id="themeBtn">🌙</button>
+  <div class="app">
+    <div class="panel left">
+      <div class="topbar">
+        <div>
+          <div class="tbar-title">Druid Entity Sandbox</div>
+          <div class="tbar-sub">Paste entities → set targets → run → inspect merged output and variables</div>
+        </div>
+        <button class="theme-btn" id="themeBtn">🌙</button>
+      </div>
+
+      <div class="sec">
+        <div class="sec-hdr"><span class="sec-label">Add Entity (paste JSON)</span><button class="btn sm ghost"
+            onclick="loadSample()">Load sample</button></div>
+        <div class="import-area"><textarea id="importJson" rows="5" spellcheck="false"
+            placeholder='Paste entity JSON with "$entityTypeName$" field, then click Import'></textarea></div>
+        <div class="import-btns"><button class="btn primary" onclick="importEntity()">Import entity</button><button
+            class="btn ghost" onclick="document.getElementById('importJson').value=''">Clear</button></div>
+        <div class="ec-status" id="importStatus"></div>
+      </div>
+
+      <hr />
+
+      <div class="sec">
+        <div class="sec-hdr"><span class="sec-label">Entities</span>
+          <div style="display:flex;gap:.3rem"><button class="btn sm ghost" onclick="expandAll()">Expand
+              all</button><button class="btn sm ghost" onclick="collapseAll()">Collapse all</button><button
+              class="btn sm ghost" style="color:var(--error)" onclick="clearAll()">Clear all</button></div>
+        </div>
+        <div id="entityList">
+          <div style="font-size:.78rem;color:var(--muted)">No entities yet. Paste JSON above and click Import.</div>
+        </div>
+      </div>
+
+      <hr />
+
+      <div class="sec">
+        <div class="sec-hdr"><span class="sec-label">Output targets</span><button class="btn sm" onclick="addTarget()">+
+            Add target</button></div>
+        <div style="font-size:.71rem;color:var(--muted)">Use target like <code>@result</code>, <code>[[Entity]]</code>,
+          or <code>[[Entity]].field</code>, paired with an expression such as <code>(function(){}())</code> or a direct
+          value.</div>
+        <div id="targetRows"></div>
+      </div>
+
+      <hr />
+
+      <div class="sec">
+        <div style="display:flex;gap:.4rem;flex-wrap:wrap;margin-top:.1rem"><button class="btn primary"
+            onclick="runVerifier()">▶ Run verifier</button></div>
+        <div class="run-status" id="runStatus"></div>
+      </div>
+    </div>
+
+    <div class="panel right">
+      <div style="margin-bottom:.85rem">
+        <div style="font-size:.92rem;font-weight:700;margin-bottom:.1rem">Output</div>
+        <div style="font-size:.72rem;color:var(--muted)">Results after verifier run</div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Active context slots</div>
+        <div id="slotPills" class="pills"><span style="color:var(--muted);font-size:.78rem">No entities yet.</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Verifier return value</div>
+        <div class="card-sub">Raw value returned by the IIFE.</div>
+        <div class="code-out" id="verOut">Run the verifier to see output.</div>
+      </div>
+      <div id="mergedSection"></div>
+      <div id="varsSection"></div>
+      <div class="card">
+        <div class="card-title">Full context (merged)</div>
+        <div class="card-sub">All entity data after merge.</div>
+        <div class="code-out" id="ctxPreview">{}</div>
+      </div>
+    </div>
   </div>
 
-  <div class="sec">
-    <div class="sec-hdr"><span class="sec-label">Add Entity (paste JSON)</span><button class="btn sm ghost" onclick="loadSample()">Load sample</button></div>
-    <div class="import-area"><textarea id="importJson" rows="5" spellcheck="false" placeholder='Paste entity JSON with "$entityTypeName$" field, then click Import'></textarea></div>
-    <div class="import-btns"><button class="btn primary" onclick="importEntity()">Import entity</button><button class="btn ghost" onclick="document.getElementById('importJson').value=''">Clear</button></div>
-    <div class="ec-status" id="importStatus"></div>
-  </div>
+  <script>
+    (function () {
+      var btn = document.getElementById('themeBtn'), root = document.documentElement;
+      var dark = matchMedia('(prefers-color-scheme:dark)').matches;
+      root.setAttribute('data-theme', dark ? 'dark' : 'light');
+      function upd() { btn.textContent = dark ? '☀️' : '🌙'; }
+      upd();
+      btn.addEventListener('click', function () { dark = !dark; root.setAttribute('data-theme', dark ? 'dark' : 'light'); upd(); });
+    })();
 
-  <hr/>
+    var ctx = {};
+    var varsStore = {};
+    var originalCtx = {};
 
-  <div class="sec">
-    <div class="sec-hdr"><span class="sec-label">Entities</span><div style="display:flex;gap:.3rem"><button class="btn sm ghost" onclick="expandAll()">Expand all</button><button class="btn sm ghost" onclick="collapseAll()">Collapse all</button><button class="btn sm ghost" style="color:var(--error)" onclick="clearAll()">Clear all</button></div></div>
-    <div id="entityList"><div style="font-size:.78rem;color:var(--muted)">No entities yet. Paste JSON above and click Import.</div></div>
-  </div>
-
-  <hr/>
-
-  <div class="sec">
-    <div class="sec-hdr"><span class="sec-label">Output targets</span><button class="btn sm" onclick="addTarget()">+ Add target</button></div>
-    <div style="font-size:.71rem;color:var(--muted)">Use target like <code>@result</code>, <code>[[Entity]]</code>, or <code>[[Entity]].field</code>, paired with an expression such as <code>(function(){}())</code> or a direct value.</div>
-    <div id="targetRows"></div>
-  </div>
-
-  <hr/>
-
-  <div class="sec">
-    <div style="display:flex;gap:.4rem;flex-wrap:wrap;margin-top:.1rem"><button class="btn primary" onclick="runVerifier()">▶ Run verifier</button></div>
-    <div class="run-status" id="runStatus"></div>
-  </div>
-</div>
-
-<div class="panel right">
-  <div style="margin-bottom:.85rem"><div style="font-size:.92rem;font-weight:700;margin-bottom:.1rem">Output</div><div style="font-size:.72rem;color:var(--muted)">Results after verifier run</div></div>
-
-  <div class="card"><div class="card-title">Active context slots</div><div id="slotPills" class="pills"><span style="color:var(--muted);font-size:.78rem">No entities yet.</span></div></div>
-  <div class="card"><div class="card-title">Verifier return value</div><div class="card-sub">Raw value returned by the IIFE.</div><div class="code-out" id="verOut">Run the verifier to see output.</div></div>
-  <div id="mergedSection"></div>
-  <div id="varsSection"></div>
-  <div class="card"><div class="card-title">Full context (merged)</div><div class="card-sub">All entity data after merge.</div><div class="code-out" id="ctxPreview">{}</div></div>
-</div>
-</div>
-
-<script>
-(function(){
-  var btn=document.getElementById('themeBtn'),root=document.documentElement;
-  var dark=matchMedia('(prefers-color-scheme:dark)').matches;
-  root.setAttribute('data-theme',dark?'dark':'light');
-  function upd(){btn.textContent=dark?'☀️':'🌙';}
-  upd();
-  btn.addEventListener('click',function(){dark=!dark;root.setAttribute('data-theme',dark?'dark':'light');upd();});
-})();
-
-var ctx={};
-var varsStore={};
-var originalCtx={};
-
-function isCollectionObj(v){
-  if(!v||typeof v!=='object'||Array.isArray(v)) return false;
-  var tn=v['$entityTypeName$']||v['$entityTypeName']||'';
-  return /_Collection$/i.test(tn)&&Array.isArray(v.items);
-}
-function makeCollection(arr){
-  var items=arr.map(normalizeValue);
-  return new Proxy(items,{
-    get:function(t,p){
-      if(p==='Count') return t.length;
-      if(p==='items') return t;
-      if(p===Symbol.iterator) return t[Symbol.iterator].bind(t);
-      return t[p];
-    },
-    set:function(t,p,v){t[p]=v;return true;}
-  });
-}
-function normalizeValue(v){
-  if(Array.isArray(v)) return v.map(normalizeValue);
-  if(v&&typeof v==='object'){
-    if(isCollectionObj(v)) return makeCollection(v.items);
-    var out={};
-    Object.keys(v).forEach(function(k){
-      if(isCollectionObj(v[k])) out[k]=makeCollection(v[k].items);
-      else out[k]=normalizeValue(v[k]);
-    });
-    return out;
-  }
-  return v;
-}
-function toPlain(v){
-  if(Array.isArray(v)) return v.map(toPlain);
-  if(v&&typeof v==='object'){
-    if(typeof v.Count!=='undefined'&&typeof v.items!=='undefined') return {Count:v.Count,items:toPlain(v.items)};
-    var out={};
-    Object.keys(v).forEach(function(k){if(typeof v[k]!=='function') out[k]=toPlain(v[k]);});
-    return out;
-  }
-  return v;
-}
-function ctxGet(path){
-  var parts=String(path).split('.');
-  var o=ctx;
-  for(var i=0;i<parts.length;i++){if(o==null) return undefined;o=o[parts[i]];}
-  return o;
-}
-function ctxSet(path,val){
-  var parts=String(path).split('.');
-  var o=ctx;
-  for(var i=0;i<parts.length-1;i++){if(o[parts[i]]==null||typeof o[parts[i]]!=='object') o[parts[i]]={}; o=o[parts[i]];}
-  o[parts[parts.length-1]]=normalizeValue(val);
-}
-function deepMerge(target,source){
-  if(typeof source!=='object'||source===null) return source;
-  if(Array.isArray(source)) return source.map(normalizeValue);
-  var out=(target&&typeof target==='object'&&!Array.isArray(target))?Object.assign({},target):{};
-  Object.keys(source).forEach(function(k){
-    if(source[k]!==null&&typeof source[k]==='object'&&!Array.isArray(source[k])&&out[k]&&typeof out[k]==='object'&&!Array.isArray(out[k]))
-      out[k]=deepMerge(out[k],source[k]);
-    else out[k]=normalizeValue(source[k]);
-  });
-  return out;
-}
-function refreshCtxPreview(){document.getElementById('ctxPreview').textContent=JSON.stringify(toPlain(ctx),null,2);}
-function refreshSlotPills(){
-  var el=document.getElementById('slotPills');
-  var keys=Object.keys(ctx);
-  if(!keys.length){el.innerHTML='<span style="color:var(--muted);font-size:.78rem">No entities yet.</span>';return;}
-  el.innerHTML=keys.map(function(k){return '<span class="pill">[['+esc(k)+']]</span>';}).join('');
-}
-
-var entityCards=[];var _ecid=0;
-function importEntity(){
-  var raw=document.getElementById('importJson').value.trim();
-  if(!raw){setStatus('importStatus','Paste JSON first','err');return;}
-  var parsed;try{parsed=JSON.parse(raw);}catch(e){setStatus('importStatus','Invalid JSON: '+e.message,'err');return;}
-  var arr=Array.isArray(parsed)?parsed:[parsed];
-  if(!arr.length){setStatus('importStatus','No entities found','err');return;}
-  var imported=[];
-  for(var i=0;i<arr.length;i++){
-    var item=arr[i];
-    var name=item&& (item['$entityTypeName$']||item['entityTypeName']);
-    if(!name){setStatus('importStatus','Missing "$entityTypeName$" field in one or more entities','err');return;}
-    var existing=entityCards.find(function(c){return c.name===name;});
-    if(existing){
-      var ta=document.getElementById('json_'+existing.id);
-      if(ta) ta.value=JSON.stringify(item,null,2);
-      ctx[name]=normalizeValue(item);
-      imported.push('Updated [['+name+']]');
-    } else {
-      _addCard(name,item);
-      imported.push('Imported [['+name+']]');
+    function isCollectionObj(v) {
+      if (!v || typeof v !== 'object' || Array.isArray(v)) return false;
+      var tn = v['$entityTypeName$'] || v['$entityTypeName'] || '';
+      return /_Collection$/i.test(tn) && Array.isArray(v.items);
     }
-  }
-  document.getElementById('importJson').value='';
-  refreshCtxPreview();refreshSlotPills();
-  setStatus('importStatus',imported.join(' · ')+' \u2713','ok');
-}
-function _addCard(name,parsed){
-  var id='ec_'+(++_ecid);
-  entityCards.push({id:id,name:name});
-  ctx[name]=normalizeValue(parsed);
-  if(!originalCtx[name]) originalCtx[name]=normalizeValue(parsed);
-  refreshCtxPreview();refreshSlotPills();
-  var list=document.getElementById('entityList');
-  if(entityCards.length===1) list.innerHTML='';
-  var card=document.createElement('div');card.className='ec';card.id=id;
-  var hdr=document.createElement('div');hdr.className='ec-hdr';
-  hdr.onclick=function(){toggleCard(id);};
-  hdr.innerHTML='<i class="chevron open" id="chev_'+id+'">\u25BA</i><span class="ec-name">[['+esc(name)+']]</span><span class="ec-badge">'+esc(name)+'</span>';
-  var rmBtn=document.createElement('button');rmBtn.className='icon-btn';rmBtn.title='Remove';rmBtn.innerHTML='\u2715';
-  rmBtn.onclick=function(e){e.stopPropagation();removeCard(id,name);};
-  hdr.appendChild(rmBtn);
-  var body=document.createElement('div');body.className='ec-body open';body.id='body_'+id;
-  var taWrap=document.createElement('div');taWrap.className='line-numbers';
-  taWrap.style.position='relative';
-  var ln=document.createElement('div');ln.className='ln';ln.id='json_'+id+'_ln';
-  var ta=document.createElement('textarea');ta.id='json_'+id;ta.setAttribute('spellcheck','false');
-  ta.value=JSON.stringify(parsed,null,2);
-  ta.oninput=function(){syncCard(id,name);};
-  var toolbar=document.createElement('div');toolbar.className='ec-toolbar';
-  var fmtBtn=document.createElement('button');fmtBtn.className='btn sm';fmtBtn.textContent='Format';fmtBtn.onclick=function(){formatCard(id,name);};
-  var rstBtn=document.createElement('button');rstBtn.className='btn sm ghost';rstBtn.textContent='Reset';rstBtn.onclick=function(){resetCard(id,name);};
-  var maxBtn=document.createElement('button');maxBtn.className='btn sm maximize-btn';maxBtn.textContent='Max';maxBtn.onclick=function(){openJsonMax(id,name);};
-  toolbar.appendChild(fmtBtn);toolbar.appendChild(rstBtn);toolbar.appendChild(maxBtn);
-  var st=document.createElement('div');st.className='ec-status';st.id='st_'+id;
-  taWrap.appendChild(ln);
-  taWrap.appendChild(ta);
-  body.appendChild(taWrap);body.appendChild(toolbar);body.appendChild(st);
-  card.appendChild(hdr);card.appendChild(body);
-  list.appendChild(card);
-}
-function toggleCard(id){var b=document.getElementById('body_'+id),c=document.getElementById('chev_'+id);var open=b.classList.toggle('open');c.classList.toggle('open',open);}
-function expandAll(){entityCards.forEach(function(e){document.getElementById('body_'+e.id).classList.add('open');document.getElementById('chev_'+e.id).classList.add('open');});}
-function collapseAll(){entityCards.forEach(function(e){document.getElementById('body_'+e.id).classList.remove('open');document.getElementById('chev_'+e.id).classList.remove('open');});}
-function toggleMaximize(id){var el=document.getElementById(id);if(!el)return;el.classList.toggle('maximized');}
-function updateLineNumbers(id){var ta=document.getElementById(id);var ln=document.getElementById(id+'_ln');if(!ta||!ln)return;var lines=ta.value.split(/\n/).length||1;ln.textContent=Array.from({length:lines},function(_,i){return i+1;}).join('\n');}
-function openJsonMax(id,name){
-  var body=document.getElementById('body_'+id);
-  var ta=document.getElementById('json_'+id);
-  if(!body||!ta) return;
-  body.classList.toggle('maximized');
-  if(body.classList.contains('maximized')){
-    ta.style.height='calc(100vh - 220px)';
-    ta.style.minHeight='calc(100vh - 220px)';
-    ta.focus();
-  }else{
-    ta.style.height='';
-    ta.style.minHeight='120px';
-  }
-}
-function removeCard(id,name){
-  var c=document.getElementById(id);if(c) c.remove();
-  entityCards=entityCards.filter(function(e){return e.id!==id;});
-  delete ctx[name];
-  if(!entityCards.length) document.getElementById('entityList').innerHTML='<div style="font-size:.78rem;color:var(--muted)">No entities yet. Paste JSON above and click Import.</div>';
-  refreshCtxPreview();refreshSlotPills();
-}
-function clearAll(){
-  document.getElementById('entityList').innerHTML='<div style="font-size:.78rem;color:var(--muted)">No entities yet. Paste JSON above and click Import.</div>';
-  entityCards=[];ctx={};varsStore={};originalCtx={};
-  refreshCtxPreview();refreshSlotPills();
-  document.getElementById('mergedSection').innerHTML='';
-  document.getElementById('varsSection').innerHTML='';
-}
-function syncCard(id,name){
-  var ta=document.getElementById('json_'+id);
-  try{ctx[name]=normalizeValue(JSON.parse(ta.value));refreshCtxPreview();refreshSlotPills();setStatus('st_'+id,'','');}
-  catch(e){setStatus('st_'+id,'JSON error: '+e.message,'err');}
-}
-function formatCard(id,name){
-  var ta=document.getElementById('json_'+id);
-  try{var v=JSON.parse(ta.value);ta.value=JSON.stringify(v,null,2);ctx[name]=normalizeValue(v);refreshCtxPreview();setStatus('st_'+id,'Formatted \u2713','ok');}
-  catch(e){setStatus('st_'+id,'JSON error: '+e.message,'err');}
-}
-function resetCard(id,name){
-  var fresh={'$entityTypeName$':name};
-  document.getElementById('json_'+id).value=JSON.stringify(fresh,null,2);
-  ctx[name]=normalizeValue(fresh);refreshCtxPreview();setStatus('st_'+id,'Reset \u2713','ok');
-}
-
-var _trid=0;var targetRows=[];
-function addTarget(defaultLine){
-  var id='tr_'+(++_trid);
-  targetRows.push(id);
-  var container=document.getElementById('targetRows');
-  var wrap=document.createElement('div');
-  wrap.id=id;
-  wrap.style.cssText='display:grid;grid-template-columns:minmax(150px,1fr) minmax(220px,2fr) auto;gap:.35rem;align-items:start;margin-bottom:.5rem;';
-  var target=document.createElement('input');
-  target.id='tt_'+id;
-  target.className='vt-target';
-  target.placeholder='@result or [[Entity]].field';
-  var exprWrap=document.createElement('div');
-  // exprWrap.className='line-numbers';
-  // exprWrap.style.position='relative';
-  var ln=document.createElement('div');
-  // ln.className='ln';
-  // ln.id='tex_'+id+'_ln';
-  var tEx=document.createElement('textarea');
-  tEx.id='tex_'+id;
-  tEx.rows=2;
-  tEx.className='vt-expr';
-  tEx.placeholder='(function(){...}()) or direct value';
-  tEx.style.minHeight='42px';
-  if(defaultLine){var parts=defaultLine.split('=>');if(parts.length>=2){target.value=parts[0].trim();tEx.value=parts.slice(1).join('=>').trim();}else{var eq=defaultLine.indexOf('=');if(eq!==-1){target.value=defaultLine.slice(0,eq).trim();tEx.value=defaultLine.slice(eq+1).trim();}}}
-  exprWrap.appendChild(ln);exprWrap.appendChild(tEx);
-  var maximize=document.createElement('button');
-  maximize.className='btn sm';
-  maximize.textContent='Max';
-  maximize.onclick=function(){toggleMaximize('tex_'+id);};
-  var rmBtn=document.createElement('button');
-  rmBtn.className='icon-btn';
-  rmBtn.innerHTML='\u2715';
-  rmBtn.style.marginTop='.3rem';
-  rmBtn.onclick=function(){removeTarget(id);};
-  wrap.appendChild(target);wrap.appendChild(exprWrap);wrap.appendChild(maximize);wrap.appendChild(rmBtn);
-  container.appendChild(wrap);
-  attachLineNumbers('tex_'+id);
-}
-function removeTarget(id){
-  var el=document.getElementById(id);if(el) el.remove();
-  targetRows=targetRows.filter(function(r){return r!==id;});
-}
-function parseTarget(str){
-  str=str.trim();
-  if(/^@[A-Za-z_][A-Za-z0-9_]*$/.test(str)) return {type:'var',name:str.slice(1)};
-  var m=str.match(/^\[\[([^\]]+)\]\]\.(.+)$/);
-  if(m) return {type:'entity',entity:m[1],field:m[2]};
-  var m2=str.match(/^\[\[([^\]]+)\]\]$/);
-  if(m2) return {type:'entity',entity:m2[1],field:null};
-  return null;
-}
-function transformSlots(code){
-  code=code.replace(/\[\[([^\]]+)\]\]\.(\w+)/g,function(_,s,f){return 'ctxGet("'+s+'").'+f;});
-  code=code.replace(/\[\[([^\]]+)\]\]/g,function(_,s){return 'ctxGet("'+s+'")'});
-  return code;
-}
-function ensurePath(path){
-  var parts=String(path).split('.');
-  var o=ctx;
-  for(var i=0;i<parts.length-1;i++){
-    if(o[parts[i]]==null||typeof o[parts[i]]!=='object') o[parts[i]]={};
-    o=o[parts[i]];
-  }
-  return {parent:o,key:parts[parts.length-1]};
-}
-function setCtxValue(path,val){
-  var ref=ensurePath(path);
-  ref.parent[ref.key]=normalizeValue(val);
-}
-function getCtxValue(path){
-  return ctxGet(path);
-}
-
-function runVerifier(){
-  if(!Object.keys(ctx).length){setRunStatus('\u26a0 Add at least one entity first','err');return;}
-  var mergedEl=document.getElementById('mergedSection');
-  var varsEl=document.getElementById('varsSection');
-  mergedEl.innerHTML='';varsEl.innerHTML='';
-
-  var targets=targetRows.map(function(id){
-    var targetEl=document.getElementById('tt_'+id);
-    var exprEl=document.getElementById('tex_'+id);
-    var target=targetEl?targetEl.value.trim():'';
-    var expr=exprEl?exprEl.value.trim():'';
-    return {target:target,expr:expr};
-  }).filter(function(x){return x.target&&x.expr;});
-
-  var anyErr=false;
-  var preview=JSON.parse(JSON.stringify(toPlain(ctx)));
-  targets.forEach(function(item){
-    var parsed=parseTarget(item.target);
-    if(!parsed) return;
-    var expr=transformSlots(item.expr);
-    var value;
-    try{
-      var fn=new Function('ctxGet','ctxSet','varsStore','"use strict"; return ('+expr+');');
-      value=fn(getCtxValue,setCtxValue,varsStore);
-    }catch(e){
-      var ecard=document.createElement('div');ecard.className='card';
-      ecard.innerHTML='<div class="card-title" style="color:var(--error)">Error \u2192 <code>'+esc(item.target)+'</code></div><div class="code-out">'+esc(e.message)+'</div>';
-      mergedEl.appendChild(ecard);
-      anyErr=true;return;
+    function makeCollection(arr) {
+      var items = arr.map(normalizeValue);
+      return new Proxy(items, {
+        get: function (t, p) {
+          if (p === 'Count') return t.length;
+          if (p === 'items') return t;
+          if (p === Symbol.iterator) return t[Symbol.iterator].bind(t);
+          return t[p];
+        },
+        set: function (t, p, v) { t[p] = v; return true; }
+      });
     }
-    var clean=toPlain(value);
-    if(parsed.type==='var'){
-      varsStore[parsed.name]=clean;
-      var vcard=document.createElement('div');vcard.className='card';
-      vcard.innerHTML='<div class="card-title">Variable \u2192 <code>@'+esc(parsed.name)+'</code></div><div class="card-sub">Stored separately from entity context.</div><div class="code-out">'+esc(JSON.stringify(clean,null,2))+'</div>';
-      varsEl.appendChild(vcard);
-      return;
+    function normalizeValue(v) {
+      if (Array.isArray(v)) return v.map(normalizeValue);
+      if (v && typeof v === 'object') {
+        if (isCollectionObj(v)) return makeCollection(v.items);
+        var out = {};
+        Object.keys(v).forEach(function (k) {
+          if (isCollectionObj(v[k])) out[k] = makeCollection(v[k].items);
+          else out[k] = normalizeValue(v[k]);
+        });
+        return out;
+      }
+      return v;
     }
-    var path=parsed.field?parsed.entity+'.'+parsed.field:parsed.entity;
-    var existing=getCtxValue(path);
-    var merged=(existing!==undefined&&existing!==null&&typeof existing==='object'&&clean!==null&&typeof clean==='object'&&!Array.isArray(clean))?deepMerge(existing,clean):normalizeValue(clean);
-    setCtxValue(path,merged);
-    setCtxValue.call({},{},{});
-    var previewMerged=getCtxValue(path);
-    var card=document.createElement('div');card.className='card';
-    card.innerHTML='<div class="card-title">Merged \u2192 <code>'+esc(item.target)+'</code></div><div class="card-sub">Expression result merged into target.</div><div class="code-out">'+esc(JSON.stringify(toPlain(previewMerged),null,2))+'</div>';
-    mergedEl.appendChild(card);
-  });
+    function toPlain(v) {
+      if (Array.isArray(v)) return v.map(toPlain);
+      if (v && typeof v === 'object') {
+        if (typeof v.Count !== 'undefined' && typeof v.items !== 'undefined') return { Count: v.Count, items: toPlain(v.items) };
+        var out = {};
+        Object.keys(v).forEach(function (k) { if (typeof v[k] !== 'function') out[k] = toPlain(v[k]); });
+        return out;
+      }
+      return v;
+    }
+    function ctxGet(path) {
+      var parts = String(path).split('.');
+      var o = ctx;
+      for (var i = 0; i < parts.length; i++) { if (o == null) return undefined; o = o[parts[i]]; }
+      return o;
+    }
+    function ctxSet(path, val) {
+      var parts = String(path).split('.');
+      var o = ctx;
+      for (var i = 0; i < parts.length - 1; i++) { if (o[parts[i]] == null || typeof o[parts[i]] !== 'object') o[parts[i]] = {}; o = o[parts[i]]; }
+      o[parts[parts.length - 1]] = normalizeValue(val);
+    }
+    function deepMerge(target, source) {
+      if (typeof source !== 'object' || source === null) return source;
+      if (Array.isArray(source)) return source.map(normalizeValue);
+      var out = (target && typeof target === 'object' && !Array.isArray(target)) ? Object.assign({}, target) : {};
+      Object.keys(source).forEach(function (k) {
+        if (source[k] !== null && typeof source[k] === 'object' && !Array.isArray(source[k]) && out[k] && typeof out[k] === 'object' && !Array.isArray(out[k]))
+          out[k] = deepMerge(out[k], source[k]);
+        else out[k] = normalizeValue(source[k]);
+      });
+      return out;
+    }
+    function refreshCtxPreview() { document.getElementById('ctxPreview').textContent = JSON.stringify(toPlain(ctx), null, 2); }
+    function refreshSlotPills() {
+      var el = document.getElementById('slotPills');
+      var keys = Object.keys(ctx);
+      if (!keys.length) { el.innerHTML = '<span style="color:var(--muted);font-size:.78rem">No entities yet.</span>'; return; }
+      el.innerHTML = keys.map(function (k) { return '<span class="pill">[[' + esc(k) + ']]</span>'; }).join('');
+    }
 
-  entityCards.forEach(function(ec){
-    var ta=document.getElementById('json_'+ec.id);
-    if(ta&&ctx[ec.name]) ta.value=JSON.stringify(toPlain(ctx[ec.name]),null,2);
-  });
-  refreshCtxPreview();refreshSlotPills();
-  if(!anyErr) setRunStatus('Ran successfully \u2713','ok');
-}
+    var entityCards = []; var _ecid = 0;
+    function importEntity() {
+      var raw = document.getElementById('importJson').value.trim();
+      if (!raw) { setStatus('importStatus', 'Paste JSON first', 'err'); return; }
+      var parsed; try { parsed = JSON.parse(raw); } catch (e) { setStatus('importStatus', 'Invalid JSON: ' + e.message, 'err'); return; }
+      var arr = Array.isArray(parsed) ? parsed : [parsed];
+      if (!arr.length) { setStatus('importStatus', 'No entities found', 'err'); return; }
+      var imported = [];
+      for (var i = 0; i < arr.length; i++) {
+        var item = arr[i];
+        var name = item && (item['$entityTypeName$'] || item['entityTypeName']);
+        if (!name) { setStatus('importStatus', 'Missing "$entityTypeName$" field in one or more entities', 'err'); return; }
+        var existing = entityCards.find(function (c) { return c.name === name; });
+        if (existing) {
+          var ta = document.getElementById('json_' + existing.id);
+          if (ta) ta.value = JSON.stringify(item, null, 2);
+          ctx[name] = normalizeValue(item);
+          imported.push('Updated [[' + name + ']]');
+        } else {
+          _addCard(name, item);
+          imported.push('Imported [[' + name + ']]');
+        }
+      }
+      document.getElementById('importJson').value = '';
+      refreshCtxPreview(); refreshSlotPills();
+      setStatus('importStatus', imported.join(' · ') + ' \u2713', 'ok');
+    }
+    function _addCard(name, parsed) {
+      var id = 'ec_' + (++_ecid);
+      entityCards.push({ id: id, name: name });
+      ctx[name] = normalizeValue(parsed);
+      if (!originalCtx[name]) originalCtx[name] = normalizeValue(parsed);
+      refreshCtxPreview(); refreshSlotPills();
+      var list = document.getElementById('entityList');
+      if (entityCards.length === 1) list.innerHTML = '';
+      var card = document.createElement('div'); card.className = 'ec'; card.id = id;
+      var hdr = document.createElement('div'); hdr.className = 'ec-hdr';
+      hdr.onclick = function () { toggleCard(id); };
+      hdr.innerHTML = '<i class="chevron open" id="chev_' + id + '">\u25BA</i><span class="ec-name">[[' + esc(name) + ']]</span><span class="ec-badge">' + esc(name) + '</span>';
+      var rmBtn = document.createElement('button'); rmBtn.className = 'icon-btn'; rmBtn.title = 'Remove'; rmBtn.innerHTML = '\u2715';
+      rmBtn.onclick = function (e) { e.stopPropagation(); removeCard(id, name); };
+      hdr.appendChild(rmBtn);
+      var body = document.createElement('div'); body.className = 'ec-body open'; body.id = 'body_' + id;
+      var taWrap = document.createElement('div'); taWrap.className = 'line-numbers';
+      taWrap.style.position = 'relative';
+      var ln = document.createElement('div'); ln.className = 'ln'; ln.id = 'json_' + id + '_ln';
+      var ta = document.createElement('textarea'); ta.id = 'json_' + id; ta.setAttribute('spellcheck', 'false');
+      ta.value = JSON.stringify(parsed, null, 2);
+      ta.oninput = function () { syncCard(id, name); };
+      var toolbar = document.createElement('div'); toolbar.className = 'ec-toolbar';
+      var fmtBtn = document.createElement('button'); fmtBtn.className = 'btn sm'; fmtBtn.textContent = 'Format'; fmtBtn.onclick = function () { formatCard(id, name); };
+      var rstBtn = document.createElement('button'); rstBtn.className = 'btn sm ghost'; rstBtn.textContent = 'Reset'; rstBtn.onclick = function () { resetCard(id, name); };
+      var maxBtn = document.createElement('button'); maxBtn.className = 'btn sm maximize-btn'; maxBtn.textContent = 'Max'; maxBtn.onclick = function () { openJsonMax(id, name); };
+      toolbar.appendChild(fmtBtn); toolbar.appendChild(rstBtn); toolbar.appendChild(maxBtn);
+      var st = document.createElement('div'); st.className = 'ec-status'; st.id = 'st_' + id;
+      taWrap.appendChild(ln);
+      taWrap.appendChild(ta);
+      body.appendChild(taWrap); body.appendChild(toolbar); body.appendChild(st);
+      card.appendChild(hdr); card.appendChild(body);
+      list.appendChild(card);
+    }
+    function toggleCard(id) { var b = document.getElementById('body_' + id), c = document.getElementById('chev_' + id); var open = b.classList.toggle('open'); c.classList.toggle('open', open); }
+    function expandAll() { entityCards.forEach(function (e) { document.getElementById('body_' + e.id).classList.add('open'); document.getElementById('chev_' + e.id).classList.add('open'); }); }
+    function collapseAll() { entityCards.forEach(function (e) { document.getElementById('body_' + e.id).classList.remove('open'); document.getElementById('chev_' + e.id).classList.remove('open'); }); }
+    function toggleMaximize(id) { var el = document.getElementById(id); if (!el) return; el.classList.toggle('maximized'); }
+    function updateLineNumbers(id) { var ta = document.getElementById(id); var ln = document.getElementById(id + '_ln'); if (!ta || !ln) return; var lines = ta.value.split(/\n/).length || 1; ln.textContent = Array.from({ length: lines }, function (_, i) { return i + 1; }).join('\n'); }
+    function openJsonMax(id, name) {
+      var body = document.getElementById('body_' + id);
+      var ta = document.getElementById('json_' + id);
+      if (!body || !ta) return;
+      body.classList.toggle('maximized');
+      if (body.classList.contains('maximized')) {
+        ta.style.height = 'calc(100vh - 220px)';
+        ta.style.minHeight = 'calc(100vh - 220px)';
+        ta.focus();
+      } else {
+        ta.style.height = '';
+        ta.style.minHeight = '120px';
+      }
+    }
+    function removeCard(id, name) {
+      var c = document.getElementById(id); if (c) c.remove();
+      entityCards = entityCards.filter(function (e) { return e.id !== id; });
+      delete ctx[name];
+      if (!entityCards.length) document.getElementById('entityList').innerHTML = '<div style="font-size:.78rem;color:var(--muted)">No entities yet. Paste JSON above and click Import.</div>';
+      refreshCtxPreview(); refreshSlotPills();
+    }
+    function clearAll() {
+      document.getElementById('entityList').innerHTML = '<div style="font-size:.78rem;color:var(--muted)">No entities yet. Paste JSON above and click Import.</div>';
+      entityCards = []; ctx = {}; varsStore = {}; originalCtx = {};
+      refreshCtxPreview(); refreshSlotPills();
+      document.getElementById('mergedSection').innerHTML = '';
+      document.getElementById('varsSection').innerHTML = '';
+    }
+    function syncCard(id, name) {
+      var ta = document.getElementById('json_' + id);
+      try { ctx[name] = normalizeValue(JSON.parse(ta.value)); refreshCtxPreview(); refreshSlotPills(); setStatus('st_' + id, '', ''); }
+      catch (e) { setStatus('st_' + id, 'JSON error: ' + e.message, 'err'); }
+    }
+    function formatCard(id, name) {
+      var ta = document.getElementById('json_' + id);
+      try { var v = JSON.parse(ta.value); ta.value = JSON.stringify(v, null, 2); ctx[name] = normalizeValue(v); refreshCtxPreview(); setStatus('st_' + id, 'Formatted \u2713', 'ok'); }
+      catch (e) { setStatus('st_' + id, 'JSON error: ' + e.message, 'err'); }
+    }
+    function resetCard(id, name) {
+      var fresh = { '$entityTypeName$': name };
+      document.getElementById('json_' + id).value = JSON.stringify(fresh, null, 2);
+      ctx[name] = normalizeValue(fresh); refreshCtxPreview(); setStatus('st_' + id, 'Reset \u2713', 'ok');
+    }
 
-function loadSample(){
-  document.getElementById('importJson').value=JSON.stringify({
-    "$entityTypeName$":"DBLink",
-    "DBLink":{"$entityTypeName$":"DBLink_Collection","items":[
-      {"$entityTypeName$":"DBLink","DurationInHoursFromStatusView":"2.183","EmployeeEmail":"somaya.noman@asiacell.com","EmployeeID":"25532","LeaveRequestNotificationID":"21157204","LeaveStatusFormManagerView":"SUBMIT","LeaveTypeFromStatusView":"Business Out Leave","StartLeaveDate":"5/25/2026 12:00:00 AM","StartTimeFromStatusView":"13:46","EndLeaveDate":"5/25/2026 12:00:00 AM","EndTimeFromStatusView":"15:57","UserLeaveReason":"Site Visit","UserLeaveComment":"\u0645\u0646 \u0627\u062c\u0644 \u0627\u0644\u062a\u0631\u0648\u064a\u062c \u0648\u062a\u0641\u0639\u064a\u0644"},
-      {"$entityTypeName$":"DBLink","DurationInHoursFromStatusView":"3","EmployeeEmail":"ahmed.abd@asiacell.com","EmployeeID":"25823","LeaveRequestNotificationID":"21155531","LeaveStatusFormManagerView":"SUBMIT","LeaveTypeFromStatusView":"Business Out Leave","StartLeaveDate":"5/24/2026 12:00:00 AM","StartTimeFromStatusView":"09:00","EndLeaveDate":"5/24/2026 12:00:00 AM","EndTimeFromStatusView":"12:00","UserLeaveReason":"Site Visit","UserLeaveComment":"\u062a\u0641\u0639\u064a\u0644 \u0648\u062a\u0631\u0648\u064a\u062c \u062e\u062f\u0645\u0627\u062a"}
-    ]},
-    "LeaveRequestNotificationID":"21153937","ManagerActionComment":"no comment","ManagerActionDecision":"APPROVED","ManagerActionResponse":"Success"
-  },null,2);
-}
+    var _trid = 0; var targetRows = [];
+    function addTarget(defaultLine) {
+      var id = 'tr_' + (++_trid);
+      targetRows.push(id);
+      var container = document.getElementById('targetRows');
+      var wrap = document.createElement('div');
+      wrap.id = id;
+      wrap.style.cssText = 'display:grid;grid-template-columns:minmax(150px,1fr) minmax(220px,2fr) auto;gap:.35rem;align-items:start;margin-bottom:.5rem;';
+      var target = document.createElement('input');
+      target.id = 'tt_' + id;
+      target.className = 'vt-target';
+      target.placeholder = '@result or [[Entity]].field';
+      var exprWrap = document.createElement('div');
+      // exprWrap.className='line-numbers';
+      // exprWrap.style.position='relative';
+      var ln = document.createElement('div');
+      // ln.className='ln';
+      // ln.id='tex_'+id+'_ln';
+      var tEx = document.createElement('textarea');
+      tEx.id = 'tex_' + id;
+      tEx.rows = 2;
+      tEx.className = 'vt-expr';
+      tEx.placeholder = '(function(){...}()) or direct value';
+      tEx.style.minHeight = '42px';
+      if (defaultLine) { var parts = defaultLine.split('=>'); if (parts.length >= 2) { target.value = parts[0].trim(); tEx.value = parts.slice(1).join('=>').trim(); } else { var eq = defaultLine.indexOf('='); if (eq !== -1) { target.value = defaultLine.slice(0, eq).trim(); tEx.value = defaultLine.slice(eq + 1).trim(); } } }
+      exprWrap.appendChild(ln); exprWrap.appendChild(tEx);
+      var maximize = document.createElement('button');
+      maximize.className = 'btn sm';
+      maximize.textContent = 'Max';
+      maximize.onclick = function () { toggleMaximize('tex_' + id); };
+      var rmBtn = document.createElement('button');
+      rmBtn.className = 'icon-btn';
+      rmBtn.innerHTML = '\u2715';
+      rmBtn.style.marginTop = '.3rem';
+      rmBtn.onclick = function () { removeTarget(id); };
+      wrap.appendChild(target); wrap.appendChild(exprWrap); wrap.appendChild(maximize); wrap.appendChild(rmBtn);
+      container.appendChild(wrap);
+      attachLineNumbers('tex_' + id);
+    }
+    function removeTarget(id) {
+      var el = document.getElementById(id); if (el) el.remove();
+      targetRows = targetRows.filter(function (r) { return r !== id; });
+    }
+    function parseTarget(str) {
+      str = str.trim();
+      if (/^@[A-Za-z_][A-Za-z0-9_]*$/.test(str)) return { type: 'var', name: str.slice(1) };
+      var m = str.match(/^\[\[([^\]]+)\]\]\.(.+)$/);
+      if (m) return { type: 'entity', entity: m[1], field: m[2] };
+      var m2 = str.match(/^\[\[([^\]]+)\]\]$/);
+      if (m2) return { type: 'entity', entity: m2[1], field: null };
+      return null;
+    }
+    function transformSlots(code) {
+      code = code.replace(/\[\[([^\]]+)\]\]\.(\w+)/g, function (_, s, f) { return 'ctxGet("' + s + '").' + f; });
+      code = code.replace(/\[\[([^\]]+)\]\]/g, function (_, s) { return 'ctxGet("' + s + '")' });
+      return code;
+    }
+    function ensurePath(path) {
+      var parts = String(path).split('.');
+      var o = ctx;
+      for (var i = 0; i < parts.length - 1; i++) {
+        if (o[parts[i]] == null || typeof o[parts[i]] !== 'object') o[parts[i]] = {};
+        o = o[parts[i]];
+      }
+      return { parent: o, key: parts[parts.length - 1] };
+    }
+    function setCtxValue(path, val) {
+      var ref = ensurePath(path);
+      ref.parent[ref.key] = normalizeValue(val);
+    }
+    function getCtxValue(path) {
+      return ctxGet(path);
+    }
 
-function setStatus(id,msg,type){var el=document.getElementById(id);if(!el)return;el.textContent=msg;el.className='ec-status'+(type?' '+type:'');}
-function setRunStatus(msg,type){var el=document.getElementById('runStatus');el.textContent=msg;el.className='run-status'+(type?' '+type:'');}
-function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/'/g,'&#39;').replace(/"/g,'&quot;');}
-function attachLineNumbers(taId){var ta=document.getElementById(taId);var ln=document.getElementById(taId+'_ln');if(!ta||!ln)return;var sync=function(){ln.textContent=Array.from({length:Math.max(1,ta.value.split(/\n/).length)},function(_,i){return i+1;}).join('\n');};ta.addEventListener('input',sync);ta.addEventListener('scroll',function(){ln.scrollTop=ta.scrollTop;});sync();}
+    function runVerifier() {
+      if (!Object.keys(ctx).length) { setRunStatus('\u26a0 Add at least one entity first', 'err'); return; }
+      var mergedEl = document.getElementById('mergedSection');
+      var varsEl = document.getElementById('varsSection');
+      mergedEl.innerHTML = ''; varsEl.innerHTML = '';
 
-(function(){
-})();
-</script>
+      var targets = targetRows.map(function (id) {
+        var targetEl = document.getElementById('tt_' + id);
+        var exprEl = document.getElementById('tex_' + id);
+        var target = targetEl ? targetEl.value.trim() : '';
+        var expr = exprEl ? exprEl.value.trim() : '';
+        return { target: target, expr: expr };
+      }).filter(function (x) { return x.target && x.expr; });
+
+      var anyErr = false;
+      var preview = JSON.parse(JSON.stringify(toPlain(ctx)));
+      targets.forEach(function (item) {
+        var parsed = parseTarget(item.target);
+        if (!parsed) return;
+        var expr = transformSlots(item.expr);
+        var value;
+        try {
+          var fn = new Function('ctxGet', 'ctxSet', 'varsStore', '"use strict"; return (' + expr + ');');
+          value = fn(getCtxValue, setCtxValue, varsStore);
+        } catch (e) {
+          var ecard = document.createElement('div'); ecard.className = 'card';
+          ecard.innerHTML = '<div class="card-title" style="color:var(--error)">Error \u2192 <code>' + esc(item.target) + '</code></div><div class="code-out">' + esc(e.message) + '</div>';
+          mergedEl.appendChild(ecard);
+          anyErr = true; return;
+        }
+        var clean = toPlain(value);
+        if (parsed.type === 'var') {
+          varsStore[parsed.name] = clean;
+          var vcard = document.createElement('div'); vcard.className = 'card';
+          vcard.innerHTML = '<div class="card-title">Variable \u2192 <code>@' + esc(parsed.name) + '</code></div><div class="card-sub">Stored separately from entity context.</div><div class="code-out">' + esc(JSON.stringify(clean, null, 2)) + '</div>';
+          varsEl.appendChild(vcard);
+          return;
+        }
+        var path = parsed.field ? parsed.entity + '.' + parsed.field : parsed.entity;
+        var existing = getCtxValue(path);
+        var merged = (existing !== undefined && existing !== null && typeof existing === 'object' && clean !== null && typeof clean === 'object' && !Array.isArray(clean)) ? deepMerge(existing, clean) : normalizeValue(clean);
+        setCtxValue(path, merged);
+        setCtxValue.call({}, {}, {});
+        var previewMerged = getCtxValue(path);
+        var card = document.createElement('div'); card.className = 'card';
+        card.innerHTML = '<div class="card-title">Merged \u2192 <code>' + esc(item.target) + '</code></div><div class="card-sub">Expression result merged into target.</div><div class="code-out">' + esc(JSON.stringify(toPlain(previewMerged), null, 2)) + '</div>';
+        mergedEl.appendChild(card);
+      });
+
+      entityCards.forEach(function (ec) {
+        var ta = document.getElementById('json_' + ec.id);
+        if (ta && ctx[ec.name]) ta.value = JSON.stringify(toPlain(ctx[ec.name]), null, 2);
+      });
+      refreshCtxPreview(); refreshSlotPills();
+      if (!anyErr) setRunStatus('Ran successfully \u2713', 'ok');
+    }
+
+    function loadSample() {
+      document.getElementById('importJson').value = JSON.stringify({
+        "$entityTypeName$": "DBLink",
+        "DBLink": {
+          "$entityTypeName$": "DBLink_Collection", "items": [
+            { "$entityTypeName$": "DBLink", "DurationInHoursFromStatusView": "2.183", "EmployeeEmail": "somaya.noman@domain.com", "EmployeeID": "25532", "LeaveRequestNotificationID": "21157204", "LeaveStatusFormManagerView": "SUBMIT", "LeaveTypeFromStatusView": "Business Out Leave", "StartLeaveDate": "5/25/2026 12:00:00 AM", "StartTimeFromStatusView": "13:46", "EndLeaveDate": "5/25/2026 12:00:00 AM", "EndTimeFromStatusView": "15:57", "UserLeaveReason": "Site Visit", "UserLeaveComment": "\u0645\u0646 \u0627\u062c\u0644 \u0627\u0644\u062a\u0631\u0648\u064a\u062c \u0648\u062a\u0641\u0639\u064a\u0644" },
+            { "$entityTypeName$": "DBLink", "DurationInHoursFromStatusView": "3", "EmployeeEmail": "ahmed.abd@domain.com", "EmployeeID": "25823", "LeaveRequestNotificationID": "21155531", "LeaveStatusFormManagerView": "SUBMIT", "LeaveTypeFromStatusView": "Business Out Leave", "StartLeaveDate": "5/24/2026 12:00:00 AM", "StartTimeFromStatusView": "09:00", "EndLeaveDate": "5/24/2026 12:00:00 AM", "EndTimeFromStatusView": "12:00", "UserLeaveReason": "Site Visit", "UserLeaveComment": "\u062a\u0641\u0639\u064a\u0644 \u0648\u062a\u0631\u0648\u064a\u062c \u062e\u062f\u0645\u0627\u062a" }
+          ]
+        },
+        "LeaveRequestNotificationID": "21153937", "ManagerActionComment": "no comment", "ManagerActionDecision": "APPROVED", "ManagerActionResponse": "Success"
+      }, null, 2);
+    }
+
+    function setStatus(id, msg, type) { var el = document.getElementById(id); if (!el) return; el.textContent = msg; el.className = 'ec-status' + (type ? ' ' + type : ''); }
+    function setRunStatus(msg, type) { var el = document.getElementById('runStatus'); el.textContent = msg; el.className = 'run-status' + (type ? ' ' + type : ''); }
+    function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/'/g, '&#39;').replace(/"/g, '&quot;'); }
+    function attachLineNumbers(taId) { var ta = document.getElementById(taId); var ln = document.getElementById(taId + '_ln'); if (!ta || !ln) return; var sync = function () { ln.textContent = Array.from({ length: Math.max(1, ta.value.split(/\n/).length) }, function (_, i) { return i + 1; }).join('\n'); }; ta.addEventListener('input', sync); ta.addEventListener('scroll', function () { ln.scrollTop = ta.scrollTop; }); sync(); }
+
+    (function () {
+    })();
+  </script>
 </body>
+
 </html>

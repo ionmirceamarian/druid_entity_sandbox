@@ -794,7 +794,7 @@
         var expr = transformSlots(item.expr);
         var value;
         try {
-          var fn = new Function('ctxGet', 'ctxSet', 'varsStore', '"use strict"; return (' + expr + ');');
+          var fn = new Function('ctxGet', 'ctxSet', 'varsStore', '"use strict"; var JSON = { parse: function(v) { return (v !== null && typeof v === "object") ? v : globalThis.JSON.parse(v); }, stringify: globalThis.JSON.stringify.bind(globalThis.JSON) }; return (' + expr.replace(/;+\s*$/, '') + ');');
           value = fn(getCtxValue, setCtxValue, varsStore);
         } catch (e) {
           var ecard = document.createElement('div'); ecard.className = 'card';

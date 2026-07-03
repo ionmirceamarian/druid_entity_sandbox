@@ -725,6 +725,36 @@
     var outputEditors = [];
     var ctxPreviewEditor = null;
 
+    var STATE_KEY = 'druidEntitySandbox.state';
+    var _saveStateTimer = null;
+    function saveState() {
+      clearTimeout(_saveStateTimer);
+      _saveStateTimer = setTimeout(function () {
+        var entities = entityCards.map(function (ec) { return { name: ec.name, json: toPlain(ctx[ec.name]) }; });
+        var targets = targetRows.map(function (id) {
+          var t = document.getElementById('tt_' + id);
+          var e = document.getElementById('tex_' + id);
+          return { target: t ? t.value : '', expr: e ? e.value : '' };
+        });
+        localStorage.setItem(STATE_KEY, JSON.stringify({ entities: entities, targets: targets }));
+      }, 150);
+    }
+    function loadState() {
+      var raw;
+      try { raw = localStorage.getItem(STATE_KEY); } catch (e) { return; }
+      if (!raw) return;
+      var state;
+      try { state = JSON.parse(raw); } catch (e) { return; }
+      (state.entities || []).forEach(function (e) { if (e && e.name) _addCard(e.name, e.json); });
+      (state.targets || []).forEach(function (t) {
+        addTarget();
+        var rows = document.querySelectorAll('#targetRows > div');
+        var last = rows[rows.length - 1];
+        last.querySelector('.vt-target').value = t.target || '';
+        last.querySelector('.vt-expr').value = t.expr || '';
+      });
+    }
+
     function isCollectionObj(v) {
       if (!v || typeof v !== 'object' || Array.isArray(v)) return false;
       var tn = v['$entityTypeName$'] || v['$entityTypeName'] || '';
@@ -766,9 +796,12 @@
       return v;
     }
     function toPlain(v) {
+      if (v && typeof v === 'object' && typeof v.Count !== 'undefined' && typeof v.items !== 'undefined') {
+        var tn = v['$entityTypeName$'];
+        return tn ? { '$entityTypeName$': tn, items: toPlain(v.items) } : { items: toPlain(v.items) };
+      }
       if (Array.isArray(v)) return v.map(toPlain);
       if (v && typeof v === 'object') {
-        if (typeof v.Count !== 'undefined' && typeof v.items !== 'undefined') return { Count: v.Count, items: toPlain(v.items) };
         var out = {};
         Object.keys(v).forEach(function (k) { if (typeof v[k] !== 'function') out[k] = toPlain(v[k]); });
         return out;
@@ -879,6 +912,7 @@
       card.appendChild(hdr); card.appendChild(body);
       list.appendChild(card);
       createJsonEditor(editorContainer, JSON.stringify(parsed, null, 2), function () { syncCard(id, name); }, id);
+      saveState();
     }
     function toggleCard(id) { var b = document.getElementById('body_' + id), c = document.getElementById('chev_' + id); var open = b.classList.toggle('open'); c.classList.toggle('open', open); }
     function expandAll() { entityCards.forEach(function (e) { document.getElementById('body_' + e.id).classList.add('open'); document.getElementById('chev_' + e.id).classList.add('open'); }); }
@@ -899,6 +933,7 @@
       delete ctx[name];
       if (!entityCards.length) document.getElementById('entityList').innerHTML = '<div style="font-size:.78rem;color:var(--muted)">No entities yet. Paste JSON above and click Import.</div>';
       refreshCtxPreview(); refreshSlotPills();
+      saveState();
     }
     function clearAll() {
       document.getElementById('entityList').innerHTML = '<div style="font-size:.78rem;color:var(--muted)">No entities yet. Paste JSON above and click Import.</div>';
@@ -909,17 +944,18 @@
       disposeOutputEditors();
       document.getElementById('mergedSection').innerHTML = '';
       document.getElementById('varsSection').innerHTML = '';
+      saveState();
     }
     function syncCard(id, name) {
       var editor = entityJsonEditors[id];
       if (!editor) return;
-      try { ctx[name] = normalizeValue(JSON.parse(editor.getValue())); refreshCtxPreview(); refreshSlotPills(); setStatus('st_' + id, '', ''); }
+      try { ctx[name] = normalizeValue(JSON.parse(editor.getValue())); refreshCtxPreview(); refreshSlotPills(); setStatus('st_' + id, '', ''); saveState(); }
       catch (e) { setStatus('st_' + id, 'JSON error: ' + e.message, 'err'); }
     }
     function formatCard(id, name) {
       var editor = entityJsonEditors[id];
       if (!editor) return;
-      try { var v = JSON.parse(editor.getValue()); editor.setValue(JSON.stringify(v, null, 2)); ctx[name] = normalizeValue(v); refreshCtxPreview(); setStatus('st_' + id, 'Formatted \u2713', 'ok'); }
+      try { var v = JSON.parse(editor.getValue()); editor.setValue(JSON.stringify(v, null, 2)); ctx[name] = normalizeValue(v); refreshCtxPreview(); setStatus('st_' + id, 'Formatted \u2713', 'ok'); saveState(); }
       catch (e) { setStatus('st_' + id, 'JSON error: ' + e.message, 'err'); }
     }
     function resetCard(id, name) {
@@ -928,6 +964,7 @@
       var fresh = { '$entityTypeName$': name };
       editor.setValue(JSON.stringify(fresh, null, 2));
       ctx[name] = normalizeValue(fresh); refreshCtxPreview(); setStatus('st_' + id, 'Reset \u2713', 'ok');
+      saveState();
     }
 
     var _trid = 0; var targetRows = [];
@@ -942,6 +979,7 @@
       target.id = 'tt_' + id;
       target.className = 'vt-target';
       target.placeholder = '@result or [[Entity]].field';
+      target.oninput = function () { saveState(); };
       var exprWrap = document.createElement('div');
       // exprWrap.className='line-numbers';
       // exprWrap.style.position='relative';
@@ -954,6 +992,7 @@
       tEx.className = 'vt-expr';
       tEx.placeholder = '(function(){...}()) or direct value';
       tEx.style.minHeight = '42px';
+      tEx.addEventListener('input', function () { saveState(); });
       if (defaultLine) { var parts = defaultLine.split('=>'); if (parts.length >= 2) { target.value = parts[0].trim(); tEx.value = parts.slice(1).join('=>').trim(); } else { var eq = defaultLine.indexOf('='); if (eq !== -1) { target.value = defaultLine.slice(0, eq).trim(); tEx.value = defaultLine.slice(eq + 1).trim(); } } }
       exprWrap.appendChild(ln); exprWrap.appendChild(tEx);
       var actionsWrap = document.createElement('div');
@@ -975,6 +1014,7 @@
     function removeTarget(id) {
       var el = document.getElementById(id); if (el) el.remove();
       targetRows = targetRows.filter(function (r) { return r !== id; });
+      saveState();
     }
     function parseTarget(str) {
       str = str.trim();
@@ -1218,7 +1258,7 @@
     }
     function saveExprModal() {
       var src = exprModalState.textareaId && document.getElementById(exprModalState.textareaId);
-      if (src && monacoEditor) src.value = monacoEditor.getValue();
+      if (src && monacoEditor) { src.value = monacoEditor.getValue(); saveState(); }
       closeExprModal();
     }
     function insertIntoEditor(text) {
@@ -1354,6 +1394,8 @@
       divider.addEventListener('pointerup', endDrag);
       divider.addEventListener('pointercancel', endDrag);
     })();
+
+    loadState();
   </script>
 </body>
 

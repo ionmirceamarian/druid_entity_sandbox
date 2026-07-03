@@ -897,6 +897,7 @@
       }).filter(function (x) { return x.target && x.expr; });
 
       var anyErr = false;
+      var changedEntities = {};
       var preview = JSON.parse(JSON.stringify(toPlain(ctx)));
       targets.forEach(function (item) {
         var parsed = parseTarget(item.target);
@@ -929,6 +930,7 @@
         var existing = getCtxValue(path);
         var merged = (existing !== undefined && existing !== null && typeof existing === 'object' && clean !== null && typeof clean === 'object' && !Array.isArray(clean)) ? deepMerge(existing, clean) : normalizeValue(clean);
         setCtxValue(path, merged);
+        changedEntities[parsed.entity] = true;
         var previewMerged = getCtxValue(path);
         var card = document.createElement('div'); card.className = 'card';
         card.innerHTML = '<div class="card-title">Merged \u2192 <code>' + esc(item.target) + '</code></div><div class="card-sub">Expression result merged into target.</div><div class="code-out">' + esc(JSON.stringify(toPlain(previewMerged), null, 2)) + '</div>';
@@ -936,6 +938,7 @@
       });
 
       entityCards.forEach(function (ec) {
+        if (!changedEntities[ec.name]) return;
         var ta = document.getElementById('json_' + ec.id);
         if (ta && ctx[ec.name]) ta.value = JSON.stringify(toPlain(ctx[ec.name]), null, 2);
       });

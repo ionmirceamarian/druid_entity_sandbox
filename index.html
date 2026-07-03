@@ -99,9 +99,9 @@
     }
 
     .app {
-      display: grid;
-      grid-template-columns: minmax(390px, 650px) 1fr;
-      min-height: 100vh
+      display: flex;
+      min-height: 100vh;
+      overflow: hidden
     }
 
     .panel {
@@ -110,15 +110,30 @@
     }
 
     .left {
-      border-right: 1px solid var(--border);
       background: var(--surface);
       display: flex;
       flex-direction: column;
-      gap: .85rem
+      gap: .85rem;
+      flex: 0 0 480px;
+      min-width: 320px;
+      max-width: 80vw
     }
 
     .right {
-      background: var(--surface2)
+      background: var(--surface2);
+      flex: 1 1 auto;
+      min-width: 0
+    }
+
+    .divider {
+      flex: 0 0 6px;
+      cursor: col-resize;
+      background: var(--border)
+    }
+
+    .divider:hover,
+    .divider.dragging {
+      background: var(--primary)
     }
 
     .topbar {
@@ -420,6 +435,73 @@
       padding: .07rem .38rem;
       border: 1px solid color-mix(in srgb, var(--primary) 25%, transparent)
     }
+
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, .45);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000
+    }
+
+    .modal-box {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--rl);
+      box-shadow: var(--sh);
+      width: min(900px, 90vw);
+      height: min(640px, 85vh);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden
+    }
+
+    .modal-box.fullscreen {
+      width: 100vw;
+      height: 100vh;
+      border-radius: 0
+    }
+
+    .modal-topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: .55rem .75rem;
+      border-bottom: 1px solid var(--border);
+      background: var(--offset)
+    }
+
+    .modal-title {
+      font-size: .82rem;
+      font-weight: 700
+    }
+
+    .modal-topbar-actions {
+      display: flex;
+      gap: .25rem
+    }
+
+    .modal-body {
+      flex: 1 1 auto;
+      padding: .75rem;
+      display: flex
+    }
+
+    .modal-body textarea {
+      flex: 1 1 auto;
+      height: 100%;
+      min-height: 0
+    }
+
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: .4rem;
+      padding: .6rem .75rem;
+      border-top: 1px solid var(--border)
+    }
   </style>
 </head>
 
@@ -477,6 +559,8 @@
       </div>
     </div>
 
+    <div class="divider" id="dividerHandle" title="Drag to resize"></div>
+
     <div class="panel right">
       <div style="margin-bottom:.85rem">
         <div style="font-size:.92rem;font-weight:700;margin-bottom:.1rem">Output</div>
@@ -503,6 +587,25 @@
     </div>
   </div>
 
+  <div class="modal-overlay" id="exprModalOverlay">
+    <div class="modal-box" id="exprModalBox">
+      <div class="modal-topbar">
+        <span class="modal-title">Edit expression</span>
+        <div class="modal-topbar-actions">
+          <button class="icon-btn" id="exprModalFsBtn" title="Toggle full screen">⛶</button>
+          <button class="icon-btn" id="exprModalCloseBtn" title="Close">✕</button>
+        </div>
+      </div>
+      <div class="modal-body">
+        <textarea id="exprModalTextarea" spellcheck="false"></textarea>
+      </div>
+      <div class="modal-footer">
+        <button class="btn ghost" id="exprModalCancelBtn">Cancel</button>
+        <button class="btn primary" id="exprModalSaveBtn">Save</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     (function () {
       var btn = document.getElementById('themeBtn'), root = document.documentElement;
@@ -522,25 +625,33 @@
       var tn = v['$entityTypeName$'] || v['$entityTypeName'] || '';
       return /_Collection$/i.test(tn) && Array.isArray(v.items);
     }
-    function makeCollection(arr) {
+    function makeCollection(arr, typeName) {
       var items = arr.map(normalizeValue);
       return new Proxy(items, {
         get: function (t, p) {
           if (p === 'Count') return t.length;
           if (p === 'items') return t;
+          if (p === '$entityTypeName$') return typeName || '';
+          if (p === 'Add') return function (item) { t.push(normalizeValue(item)); return t.length; };
           if (p === Symbol.iterator) return t[Symbol.iterator].bind(t);
           return t[p];
         },
         set: function (t, p, v) { t[p] = v; return true; }
       });
     }
+    function createEntityFactory() {
+      return {
+        CreateCollection: function (typeName) { return makeCollection([], typeName); },
+        CreateEntityByName: function (typeName) { return { '$entityTypeName$': typeName }; }
+      };
+    }
     function normalizeValue(v) {
       if (Array.isArray(v)) return v.map(normalizeValue);
       if (v && typeof v === 'object') {
-        if (isCollectionObj(v)) return makeCollection(v.items);
+        if (isCollectionObj(v)) return makeCollection(v.items, v['$entityTypeName$'] || v['$entityTypeName']);
         var out = {};
         Object.keys(v).forEach(function (k) {
-          if (isCollectionObj(v[k])) out[k] = makeCollection(v[k].items);
+          if (isCollectionObj(v[k])) out[k] = makeCollection(v[k].items, v[k]['$entityTypeName$'] || v[k]['$entityTypeName']);
           else out[k] = normalizeValue(v[k]);
         });
         return out;
@@ -640,7 +751,7 @@
       var toolbar = document.createElement('div'); toolbar.className = 'ec-toolbar';
       var fmtBtn = document.createElement('button'); fmtBtn.className = 'btn sm'; fmtBtn.textContent = 'Format'; fmtBtn.onclick = function () { formatCard(id, name); };
       var rstBtn = document.createElement('button'); rstBtn.className = 'btn sm ghost'; rstBtn.textContent = 'Reset'; rstBtn.onclick = function () { resetCard(id, name); };
-      var maxBtn = document.createElement('button'); maxBtn.className = 'btn sm maximize-btn'; maxBtn.textContent = 'Max'; maxBtn.onclick = function () { openJsonMax(id, name); };
+      var maxBtn = document.createElement('button'); maxBtn.className = 'btn sm maximize-btn'; maxBtn.innerHTML = '⛶ Max'; maxBtn.onclick = function () { openJsonMax(id, name); };
       toolbar.appendChild(fmtBtn); toolbar.appendChild(rstBtn); toolbar.appendChild(maxBtn);
       var st = document.createElement('div'); st.className = 'ec-status'; st.id = 'st_' + id;
       taWrap.appendChild(ln);
@@ -652,7 +763,6 @@
     function toggleCard(id) { var b = document.getElementById('body_' + id), c = document.getElementById('chev_' + id); var open = b.classList.toggle('open'); c.classList.toggle('open', open); }
     function expandAll() { entityCards.forEach(function (e) { document.getElementById('body_' + e.id).classList.add('open'); document.getElementById('chev_' + e.id).classList.add('open'); }); }
     function collapseAll() { entityCards.forEach(function (e) { document.getElementById('body_' + e.id).classList.remove('open'); document.getElementById('chev_' + e.id).classList.remove('open'); }); }
-    function toggleMaximize(id) { var el = document.getElementById(id); if (!el) return; el.classList.toggle('maximized'); }
     function updateLineNumbers(id) { var ta = document.getElementById(id); var ln = document.getElementById(id + '_ln'); if (!ta || !ln) return; var lines = ta.value.split(/\n/).length || 1; ln.textContent = Array.from({ length: lines }, function (_, i) { return i + 1; }).join('\n'); }
     function openJsonMax(id, name) {
       var body = document.getElementById('body_' + id);
@@ -726,8 +836,8 @@
       exprWrap.appendChild(ln); exprWrap.appendChild(tEx);
       var maximize = document.createElement('button');
       maximize.className = 'btn sm';
-      maximize.textContent = 'Max';
-      maximize.onclick = function () { toggleMaximize('tex_' + id); };
+      maximize.textContent = 'Expand';
+      maximize.onclick = function () { openExprModal('tex_' + id); };
       var rmBtn = document.createElement('button');
       rmBtn.className = 'icon-btn';
       rmBtn.innerHTML = '\u2715';
@@ -791,11 +901,16 @@
       targets.forEach(function (item) {
         var parsed = parseTarget(item.target);
         if (!parsed) return;
+        if (parsed.type === 'entity') {
+          var initPath = parsed.field ? parsed.entity + '.' + parsed.field : parsed.entity;
+          var initRef = ensurePath(initPath);
+          if (initRef.parent[initRef.key] === undefined) initRef.parent[initRef.key] = {};
+        }
         var expr = transformSlots(item.expr);
         var value;
         try {
-          var fn = new Function('ctxGet', 'ctxSet', 'varsStore', '"use strict"; var JSON = { parse: function(v) { return (v !== null && typeof v === "object") ? v : globalThis.JSON.parse(v); }, stringify: globalThis.JSON.stringify.bind(globalThis.JSON) }; return (' + expr.replace(/;+\s*$/, '') + ');');
-          value = fn(getCtxValue, setCtxValue, varsStore);
+          var fn = new Function('ctxGet', 'ctxSet', 'varsStore', 'EntityFactory', '"use strict"; var JSON = { parse: function(v) { return (v !== null && typeof v === "object") ? v : globalThis.JSON.parse(v); }, stringify: globalThis.JSON.stringify.bind(globalThis.JSON) }; return (' + expr.replace(/;+\s*$/, '') + ');');
+          value = fn(getCtxValue, setCtxValue, varsStore, createEntityFactory());
         } catch (e) {
           var ecard = document.createElement('div'); ecard.className = 'card';
           ecard.innerHTML = '<div class="card-title" style="color:var(--error)">Error \u2192 <code>' + esc(item.target) + '</code></div><div class="code-out">' + esc(e.message) + '</div>';
@@ -814,7 +929,6 @@
         var existing = getCtxValue(path);
         var merged = (existing !== undefined && existing !== null && typeof existing === 'object' && clean !== null && typeof clean === 'object' && !Array.isArray(clean)) ? deepMerge(existing, clean) : normalizeValue(clean);
         setCtxValue(path, merged);
-        setCtxValue.call({}, {}, {});
         var previewMerged = getCtxValue(path);
         var card = document.createElement('div'); card.className = 'card';
         card.innerHTML = '<div class="card-title">Merged \u2192 <code>' + esc(item.target) + '</code></div><div class="card-sub">Expression result merged into target.</div><div class="code-out">' + esc(JSON.stringify(toPlain(previewMerged), null, 2)) + '</div>';
@@ -847,7 +961,67 @@
     function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/'/g, '&#39;').replace(/"/g, '&quot;'); }
     function attachLineNumbers(taId) { var ta = document.getElementById(taId); var ln = document.getElementById(taId + '_ln'); if (!ta || !ln) return; var sync = function () { ln.textContent = Array.from({ length: Math.max(1, ta.value.split(/\n/).length) }, function (_, i) { return i + 1; }).join('\n'); }; ta.addEventListener('input', sync); ta.addEventListener('scroll', function () { ln.scrollTop = ta.scrollTop; }); sync(); }
 
+    var exprModalState = { textareaId: null };
+    function openExprModal(textareaId) {
+      var src = document.getElementById(textareaId);
+      if (!src) return;
+      exprModalState.textareaId = textareaId;
+      document.getElementById('exprModalTextarea').value = src.value;
+      document.getElementById('exprModalBox').classList.remove('fullscreen');
+      document.getElementById('exprModalOverlay').style.display = 'flex';
+      document.getElementById('exprModalTextarea').focus();
+    }
+    function closeExprModal() {
+      document.getElementById('exprModalOverlay').style.display = 'none';
+      exprModalState.textareaId = null;
+    }
+    function saveExprModal() {
+      var src = exprModalState.textareaId && document.getElementById(exprModalState.textareaId);
+      if (src) src.value = document.getElementById('exprModalTextarea').value;
+      closeExprModal();
+    }
+    document.getElementById('exprModalFsBtn').addEventListener('click', function () {
+      document.getElementById('exprModalBox').classList.toggle('fullscreen');
+    });
+    document.getElementById('exprModalCloseBtn').addEventListener('click', closeExprModal);
+    document.getElementById('exprModalCancelBtn').addEventListener('click', closeExprModal);
+    document.getElementById('exprModalSaveBtn').addEventListener('click', saveExprModal);
+    document.getElementById('exprModalOverlay').addEventListener('click', function (e) {
+      if (e.target === this) closeExprModal();
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && document.getElementById('exprModalOverlay').style.display === 'flex') closeExprModal();
+    });
+
     (function () {
+      var leftPanel = document.querySelector('.panel.left');
+      var divider = document.getElementById('dividerHandle');
+      var app = document.querySelector('.app');
+      var STORE_KEY = 'druidEntitySandbox.leftWidth';
+      var stored = parseInt(localStorage.getItem(STORE_KEY), 10);
+      if (stored) leftPanel.style.flexBasis = stored + 'px';
+      var dragging = false;
+      divider.addEventListener('pointerdown', function (e) {
+        dragging = true;
+        divider.classList.add('dragging');
+        divider.setPointerCapture(e.pointerId);
+      });
+      divider.addEventListener('pointermove', function (e) {
+        if (!dragging) return;
+        var rect = app.getBoundingClientRect();
+        var min = 320, max = rect.width - 320;
+        var w = Math.max(min, Math.min(max, e.clientX - rect.left));
+        leftPanel.style.flexBasis = w + 'px';
+      });
+      function endDrag(e) {
+        if (!dragging) return;
+        dragging = false;
+        divider.classList.remove('dragging');
+        if (e && divider.hasPointerCapture(e.pointerId)) divider.releasePointerCapture(e.pointerId);
+        localStorage.setItem(STORE_KEY, parseInt(leftPanel.style.flexBasis, 10));
+      }
+      divider.addEventListener('pointerup', endDrag);
+      divider.addEventListener('pointercancel', endDrag);
     })();
   </script>
 </body>

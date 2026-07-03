@@ -13,6 +13,19 @@
   <link
     href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap"
     rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.49.0/min/vs/loader.min.js"></script>
+  <script>
+    var MONACO_BASE = 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.49.0/min';
+    require.config({ paths: { vs: MONACO_BASE + '/vs' } });
+    window.MonacoEnvironment = {
+      getWorkerUrl: function () {
+        return 'data:text/javascript;charset=utf-8,' + encodeURIComponent(
+          "self.MonacoEnvironment={baseUrl:'" + MONACO_BASE + "/'};" +
+          "importScripts('" + MONACO_BASE + "/vs/base/worker/workerMain.js');"
+        );
+      }
+    };
+  </script>
   <style>
     :root,
     [data-theme="light"] {
@@ -483,16 +496,80 @@
       gap: .25rem
     }
 
+    .modal-toolbar {
+      display: flex;
+      align-items: center;
+      gap: .4rem;
+      padding: .5rem .75rem;
+      border-bottom: 1px solid var(--border)
+    }
+
     .modal-body {
       flex: 1 1 auto;
-      padding: .75rem;
-      display: flex
+      padding: 0;
+      display: flex;
+      min-height: 0
     }
 
     .modal-body textarea {
       flex: 1 1 auto;
       height: 100%;
       min-height: 0
+    }
+
+    #exprModalEditor {
+      flex: 1 1 auto;
+      width: 100%;
+      height: 100%;
+      min-height: 0
+    }
+
+    .entity-explorer-panel {
+      display: none;
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0;
+      min-width: 220px;
+      max-width: 320px;
+      max-height: 320px;
+      overflow: auto;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      box-shadow: var(--sh);
+      z-index: 1100;
+      padding: .3rem
+    }
+
+    .entity-explorer-panel.open {
+      display: block
+    }
+
+    .ee-entity {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: .74rem;
+      font-weight: 600;
+      color: var(--primary);
+      padding: .3rem .4rem;
+      cursor: pointer;
+      border-radius: 4px
+    }
+
+    .ee-entity:hover {
+      background: var(--offset)
+    }
+
+    .ee-field {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: .72rem;
+      color: var(--text);
+      padding: .22rem .4rem .22rem 1.1rem;
+      cursor: pointer;
+      border-radius: 4px
+    }
+
+    .ee-field:hover {
+      background: var(--offset)
     }
 
     .modal-footer {
@@ -542,8 +619,8 @@
       <hr />
 
       <div class="sec">
-        <div class="sec-hdr"><span class="sec-label">Output targets</span><button class="btn sm" onclick="addTarget()">+
-            Add target</button></div>
+        <div class="sec-hdr"><span class="sec-label">Set Variables</span><button class="btn sm" onclick="addTarget()">+
+            Add New</button></div>
         <div style="font-size:.71rem;color:var(--muted)">Use target like <code>@result</code>, <code>[[Entity]]</code>,
           or <code>[[Entity]].field</code>, paired with an expression such as <code>(function(){}())</code> or a direct
           value.</div>
@@ -590,14 +667,24 @@
   <div class="modal-overlay" id="exprModalOverlay">
     <div class="modal-box" id="exprModalBox">
       <div class="modal-topbar">
-        <span class="modal-title">Edit expression</span>
+        <span class="modal-title" id="exprModalTitle">Edit expression</span>
         <div class="modal-topbar-actions">
           <button class="icon-btn" id="exprModalFsBtn" title="Toggle full screen">⛶</button>
           <button class="icon-btn" id="exprModalCloseBtn" title="Close">✕</button>
         </div>
       </div>
+      <div class="modal-toolbar">
+        <div style="position:relative">
+          <button class="btn sm" id="exprModalExplorerBtn">📁 Entity explorer</button>
+          <div class="entity-explorer-panel" id="entityExplorerPanel"></div>
+        </div>
+        <div style="position:relative">
+          <button class="btn sm" id="exprModalTemplateBtn">+ Add default template</button>
+          <div class="entity-explorer-panel" id="templatePanel"></div>
+        </div>
+      </div>
       <div class="modal-body">
-        <textarea id="exprModalTextarea" spellcheck="false"></textarea>
+        <div id="exprModalEditor"></div>
       </div>
       <div class="modal-footer">
         <button class="btn ghost" id="exprModalCancelBtn">Cancel</button>
@@ -613,7 +700,10 @@
       root.setAttribute('data-theme', dark ? 'dark' : 'light');
       function upd() { btn.textContent = dark ? '☀️' : '🌙'; }
       upd();
-      btn.addEventListener('click', function () { dark = !dark; root.setAttribute('data-theme', dark ? 'dark' : 'light'); upd(); });
+      btn.addEventListener('click', function () {
+        dark = !dark; root.setAttribute('data-theme', dark ? 'dark' : 'light'); upd();
+        if (window.monaco) monaco.editor.setTheme(dark ? 'vs-dark' : 'vs');
+      });
     })();
 
     var ctx = {};
@@ -633,6 +723,8 @@
           if (p === 'items') return t;
           if (p === '$entityTypeName$') return typeName || '';
           if (p === 'Add') return function (item) { t.push(normalizeValue(item)); return t.length; };
+          if (p === 'Insert') return function (position, item) { t.splice(position, 0, normalizeValue(item)); return t.length; };
+          if (p === 'RemoveAt') return function (position) { return t.splice(position, 1)[0]; };
           if (p === Symbol.iterator) return t[Symbol.iterator].bind(t);
           return t[p];
         },
@@ -834,6 +926,8 @@
       tEx.style.minHeight = '42px';
       if (defaultLine) { var parts = defaultLine.split('=>'); if (parts.length >= 2) { target.value = parts[0].trim(); tEx.value = parts.slice(1).join('=>').trim(); } else { var eq = defaultLine.indexOf('='); if (eq !== -1) { target.value = defaultLine.slice(0, eq).trim(); tEx.value = defaultLine.slice(eq + 1).trim(); } } }
       exprWrap.appendChild(ln); exprWrap.appendChild(tEx);
+      var actionsWrap = document.createElement('div');
+      actionsWrap.style.cssText = 'display:flex;align-items:center;gap:.3rem;';
       var maximize = document.createElement('button');
       maximize.className = 'btn sm';
       maximize.textContent = 'Expand';
@@ -841,9 +935,10 @@
       var rmBtn = document.createElement('button');
       rmBtn.className = 'icon-btn';
       rmBtn.innerHTML = '\u2715';
-      rmBtn.style.marginTop = '.3rem';
+      rmBtn.title = 'Delete';
       rmBtn.onclick = function () { removeTarget(id); };
-      wrap.appendChild(target); wrap.appendChild(exprWrap); wrap.appendChild(maximize); wrap.appendChild(rmBtn);
+      actionsWrap.appendChild(maximize); actionsWrap.appendChild(rmBtn);
+      wrap.appendChild(target); wrap.appendChild(exprWrap); wrap.appendChild(actionsWrap);
       container.appendChild(wrap);
       attachLineNumbers('tex_' + id);
     }
@@ -965,26 +1060,184 @@
     function attachLineNumbers(taId) { var ta = document.getElementById(taId); var ln = document.getElementById(taId + '_ln'); if (!ta || !ln) return; var sync = function () { ln.textContent = Array.from({ length: Math.max(1, ta.value.split(/\n/).length) }, function (_, i) { return i + 1; }).join('\n'); }; ta.addEventListener('input', sync); ta.addEventListener('scroll', function () { ln.scrollTop = ta.scrollTop; }); sync(); }
 
     var exprModalState = { textareaId: null };
+    var monacoEditor = null;
+    var monacoLoadPromise = null;
+    function currentModalTargetInput() {
+      if (!exprModalState.textareaId) return null;
+      return document.getElementById('tt_' + exprModalState.textareaId.replace(/^tex_/, ''));
+    }
+    function ensureMonaco(cb) {
+      if (window.monaco) { cb(); return; }
+      if (!monacoLoadPromise) {
+        monacoLoadPromise = new Promise(function (resolve) {
+          require(['vs/editor/editor.main'], function () {
+            monaco.languages.typescript.javascriptDefaults.setDiagnosticsOptions({ noSemanticValidation: true, noSyntaxValidation: false });
+            monaco.languages.typescript.javascriptDefaults.addExtraLib(
+              'declare const EntityFactory: { CreateCollection(typeName: string): any; CreateEntityByName(typeName: string): any; };\n' +
+              'declare function ctxGet(path: string): any;\n' +
+              'declare function ctxSet(path: string, val: any): void;\n' +
+              'declare const varsStore: any;',
+              'druid-sandbox-globals.d.ts'
+            );
+            monaco.languages.registerCompletionItemProvider('javascript', {
+              triggerCharacters: ['[', '.'],
+              provideCompletionItems: function (model, position) {
+                var textUntil = model.getValueInRange({ startLineNumber: position.lineNumber, startColumn: 1, endLineNumber: position.lineNumber, endColumn: position.column });
+                var word = model.getWordUntilPosition(position);
+                var range = { startLineNumber: position.lineNumber, endLineNumber: position.lineNumber, startColumn: word.startColumn, endColumn: word.endColumn };
+                var fieldMatch = textUntil.match(/\[\[([A-Za-z0-9_]+)\]\]\.([A-Za-z0-9_]*)$/);
+                if (fieldMatch) {
+                  var entity = ctx[fieldMatch[1]];
+                  if (!entity || typeof entity !== 'object') return { suggestions: [] };
+                  var keys = Object.keys(entity).filter(function (k) { return k !== '$entityTypeName$'; });
+                  if (typeof entity.Add === 'function') keys = keys.concat(['Add', 'Insert', 'RemoveAt', 'Count']);
+                  return { suggestions: keys.map(function (k) { return { label: k, kind: monaco.languages.CompletionItemKind.Field, insertText: k, range: range, sortText: '0' + k, detail: fieldMatch[1] }; }) };
+                }
+                var entityMatch = textUntil.match(/\[\[([A-Za-z0-9_]*)$/);
+                if (entityMatch) {
+                  return { suggestions: Object.keys(ctx).map(function (name) { return { label: name, kind: monaco.languages.CompletionItemKind.Class, insertText: name + ']]', detail: 'entity', range: range, sortText: '0' + name }; }) };
+                }
+                return { suggestions: [] };
+              }
+            });
+            resolve();
+          });
+        });
+      }
+      monacoLoadPromise.then(cb);
+    }
     function openExprModal(textareaId) {
       var src = document.getElementById(textareaId);
       if (!src) return;
       exprModalState.textareaId = textareaId;
-      document.getElementById('exprModalTextarea').value = src.value;
+      var targetInput = document.getElementById('tt_' + textareaId.replace(/^tex_/, ''));
+      document.getElementById('exprModalTitle').textContent = 'Set Variable' + (targetInput && targetInput.value.trim() ? ' → ' + targetInput.value.trim() + ' =' : '');
       document.getElementById('exprModalBox').classList.remove('fullscreen');
       document.getElementById('exprModalOverlay').style.display = 'flex';
-      document.getElementById('exprModalTextarea').focus();
+      closeEntityExplorer();
+      ensureMonaco(function () {
+        var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+        if (!monacoEditor) {
+          monacoEditor = monaco.editor.create(document.getElementById('exprModalEditor'), {
+            value: src.value,
+            language: 'javascript',
+            theme: isDark ? 'vs-dark' : 'vs',
+            automaticLayout: true,
+            minimap: { enabled: true },
+            fontSize: 13,
+            fontFamily: "'IBM Plex Mono', monospace",
+            scrollBeyondLastLine: false
+          });
+        } else {
+          monacoEditor.setValue(src.value);
+          monaco.editor.setTheme(isDark ? 'vs-dark' : 'vs');
+        }
+        setTimeout(function () { monacoEditor.layout(); monacoEditor.focus(); }, 0);
+      });
     }
     function closeExprModal() {
       document.getElementById('exprModalOverlay').style.display = 'none';
       exprModalState.textareaId = null;
+      closeEntityExplorer();
+      closeTemplatePanel();
     }
     function saveExprModal() {
       var src = exprModalState.textareaId && document.getElementById(exprModalState.textareaId);
-      if (src) src.value = document.getElementById('exprModalTextarea').value;
+      if (src && monacoEditor) src.value = monacoEditor.getValue();
       closeExprModal();
     }
+    function insertIntoEditor(text) {
+      if (!monacoEditor) return;
+      var sel = monacoEditor.getSelection();
+      monacoEditor.executeEdits('entity-explorer', [{ range: sel, text: text, forceMoveMarkers: true }]);
+      monacoEditor.focus();
+    }
+    function closeEntityExplorer() {
+      var p = document.getElementById('entityExplorerPanel');
+      p.classList.remove('open');
+      p.innerHTML = '';
+    }
+    function toggleEntityExplorer() {
+      var p = document.getElementById('entityExplorerPanel');
+      if (p.classList.contains('open')) { closeEntityExplorer(); return; }
+      var names = Object.keys(ctx);
+      if (!names.length) { p.innerHTML = '<div style="padding:.3rem .4rem;color:var(--muted);font-size:.72rem">No entities imported yet.</div>'; p.classList.add('open'); return; }
+      p.innerHTML = '';
+      names.forEach(function (name) {
+        var row = document.createElement('div'); row.className = 'ee-entity'; row.textContent = '[[' + esc(name) + ']]';
+        row.onclick = function (e) { e.stopPropagation(); insertIntoEditor('[[' + name + ']]'); closeEntityExplorer(); };
+        p.appendChild(row);
+        var val = ctx[name];
+        if (val && typeof val === 'object') {
+          Object.keys(val).filter(function (k) { return k !== '$entityTypeName$'; }).forEach(function (field) {
+            var frow = document.createElement('div'); frow.className = 'ee-field'; frow.textContent = field;
+            frow.onclick = function (e) { e.stopPropagation(); insertIntoEditor('[[' + name + ']].' + field); closeEntityExplorer(); };
+            p.appendChild(frow);
+          });
+        }
+      });
+      p.classList.add('open');
+    }
+    document.getElementById('exprModalExplorerBtn').addEventListener('click', function (e) { e.stopPropagation(); closeTemplatePanel(); toggleEntityExplorer(); });
+    document.addEventListener('click', function (e) {
+      var panel = document.getElementById('entityExplorerPanel');
+      if (panel.classList.contains('open') && !panel.contains(e.target) && e.target.id !== 'exprModalExplorerBtn') closeEntityExplorer();
+    });
+
+    function targetEntityHint() {
+      var targetInput = currentModalTargetInput();
+      var m = targetInput && targetInput.value.trim().match(/^\[\[([^\]]+)\]\]/);
+      return m ? m[1] : null;
+    }
+    var DEFAULT_TEMPLATES = [
+      {
+        label: 'Empty inline function',
+        build: function () { return '(\nfunction ()\n{\n    return undefined;\n}\n)()'; }
+      },
+      {
+        label: 'Set Entity',
+        build: function (hint) {
+          var name = hint || 'your_entity_name';
+          return '(\nfunction ()\n{\n    let newEntity = EntityFactory.CreateEntityByName("' + name + '");\n    newEntity.Name = "";\n    newEntity.Status = "Draft";\n\n    return newEntity;\n}\n)()';
+        }
+      },
+      {
+        label: 'Set Entity Collection',
+        build: function (hint) {
+          var name = hint || 'your_entity_name';
+          return '(\nfunction ()\n{\n    let vList = EntityFactory.CreateCollection("' + name + '");\n    for (let i = 0; i < 1; i++)\n    {\n        let newItem = EntityFactory.CreateEntityByName("' + name + '");\n        newItem.Name = i.toString();\n        newItem.Status = "Draft";\n        vList.Add(newItem);\n    }\n\n    return vList;\n}\n)();';
+        }
+      }
+    ];
+    function closeTemplatePanel() {
+      var p = document.getElementById('templatePanel');
+      p.classList.remove('open');
+      p.innerHTML = '';
+    }
+    function toggleTemplatePanel() {
+      var p = document.getElementById('templatePanel');
+      if (p.classList.contains('open')) { closeTemplatePanel(); return; }
+      p.innerHTML = '';
+      var hint = targetEntityHint();
+      DEFAULT_TEMPLATES.forEach(function (tpl) {
+        var row = document.createElement('div'); row.className = 'ee-entity'; row.textContent = tpl.label;
+        row.onclick = function (e) {
+          e.stopPropagation();
+          if (monacoEditor) { monacoEditor.setValue(tpl.build(hint)); monacoEditor.focus(); }
+          closeTemplatePanel();
+        };
+        p.appendChild(row);
+      });
+      p.classList.add('open');
+    }
+    document.getElementById('exprModalTemplateBtn').addEventListener('click', function (e) { e.stopPropagation(); closeEntityExplorer(); toggleTemplatePanel(); });
+    document.addEventListener('click', function (e) {
+      var panel = document.getElementById('templatePanel');
+      if (panel.classList.contains('open') && !panel.contains(e.target) && e.target.id !== 'exprModalTemplateBtn') closeTemplatePanel();
+    });
     document.getElementById('exprModalFsBtn').addEventListener('click', function () {
       document.getElementById('exprModalBox').classList.toggle('fullscreen');
+      setTimeout(function () { if (monacoEditor) monacoEditor.layout(); }, 0);
     });
     document.getElementById('exprModalCloseBtn').addEventListener('click', closeExprModal);
     document.getElementById('exprModalCancelBtn').addEventListener('click', closeExprModal);

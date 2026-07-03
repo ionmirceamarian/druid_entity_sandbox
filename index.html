@@ -329,10 +329,6 @@
       display: block
     }
 
-    .ec-body textarea {
-      min-height: 120px
-    }
-
     .ec-toolbar {
       display: flex;
       gap: .3rem;
@@ -422,6 +418,22 @@
       word-break: break-all;
       max-height: 420px;
       overflow: auto
+    }
+
+    .json-editor-container {
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      overflow: hidden;
+      height: 200px
+    }
+
+    .json-editor-container.tall {
+      height: 340px
+    }
+
+    .json-editor-container.output {
+      height: 160px;
+      margin-top: .1rem
     }
 
     code {
@@ -659,7 +671,7 @@
       <div class="card">
         <div class="card-title">Full context (merged)</div>
         <div class="card-sub">All entity data after merge.</div>
-        <div class="code-out" id="ctxPreview">{}</div>
+        <div class="json-editor-container tall" id="ctxPreview"></div>
       </div>
     </div>
   </div>
@@ -709,6 +721,9 @@
     var ctx = {};
     var varsStore = {};
     var originalCtx = {};
+    var entityJsonEditors = {};
+    var outputEditors = [];
+    var ctxPreviewEditor = null;
 
     function isCollectionObj(v) {
       if (!v || typeof v !== 'object' || Array.isArray(v)) return false;
@@ -783,7 +798,26 @@
       });
       return out;
     }
-    function refreshCtxPreview() { document.getElementById('ctxPreview').textContent = JSON.stringify(toPlain(ctx), null, 2); }
+    function refreshCtxPreview() {
+      var text = JSON.stringify(toPlain(ctx), null, 2);
+      ensureMonaco(function () {
+        if (!ctxPreviewEditor) {
+          ctxPreviewEditor = monaco.editor.create(document.getElementById('ctxPreview'), {
+            value: text,
+            language: 'json',
+            theme: isDarkTheme() ? 'vs-dark' : 'vs',
+            automaticLayout: true,
+            readOnly: true,
+            minimap: { enabled: false },
+            fontSize: 12,
+            fontFamily: "'IBM Plex Mono', monospace",
+            scrollBeyondLastLine: false
+          });
+        } else {
+          ctxPreviewEditor.setValue(text);
+        }
+      });
+    }
     function refreshSlotPills() {
       var el = document.getElementById('slotPills');
       var keys = Object.keys(ctx);
@@ -805,8 +839,8 @@
         if (!name) { setStatus('importStatus', 'Missing "$entityTypeName$" field in one or more entities', 'err'); return; }
         var existing = entityCards.find(function (c) { return c.name === name; });
         if (existing) {
-          var ta = document.getElementById('json_' + existing.id);
-          if (ta) ta.value = JSON.stringify(item, null, 2);
+          var editor = entityJsonEditors[existing.id];
+          if (editor) editor.setValue(JSON.stringify(item, null, 2));
           ctx[name] = normalizeValue(item);
           imported.push('Updated [[' + name + ']]');
         } else {
@@ -834,44 +868,33 @@
       rmBtn.onclick = function (e) { e.stopPropagation(); removeCard(id, name); };
       hdr.appendChild(rmBtn);
       var body = document.createElement('div'); body.className = 'ec-body open'; body.id = 'body_' + id;
-      var taWrap = document.createElement('div'); taWrap.className = 'line-numbers';
-      taWrap.style.position = 'relative';
-      var ln = document.createElement('div'); ln.className = 'ln'; ln.id = 'json_' + id + '_ln';
-      var ta = document.createElement('textarea'); ta.id = 'json_' + id; ta.setAttribute('spellcheck', 'false');
-      ta.value = JSON.stringify(parsed, null, 2);
-      ta.oninput = function () { syncCard(id, name); };
+      var editorContainer = document.createElement('div'); editorContainer.className = 'json-editor-container'; editorContainer.id = 'json_' + id;
       var toolbar = document.createElement('div'); toolbar.className = 'ec-toolbar';
       var fmtBtn = document.createElement('button'); fmtBtn.className = 'btn sm'; fmtBtn.textContent = 'Format'; fmtBtn.onclick = function () { formatCard(id, name); };
       var rstBtn = document.createElement('button'); rstBtn.className = 'btn sm ghost'; rstBtn.textContent = 'Reset'; rstBtn.onclick = function () { resetCard(id, name); };
       var maxBtn = document.createElement('button'); maxBtn.className = 'btn sm maximize-btn'; maxBtn.innerHTML = '⛶ Max'; maxBtn.onclick = function () { openJsonMax(id, name); };
       toolbar.appendChild(fmtBtn); toolbar.appendChild(rstBtn); toolbar.appendChild(maxBtn);
       var st = document.createElement('div'); st.className = 'ec-status'; st.id = 'st_' + id;
-      taWrap.appendChild(ln);
-      taWrap.appendChild(ta);
-      body.appendChild(taWrap); body.appendChild(toolbar); body.appendChild(st);
+      body.appendChild(editorContainer); body.appendChild(toolbar); body.appendChild(st);
       card.appendChild(hdr); card.appendChild(body);
       list.appendChild(card);
+      createJsonEditor(editorContainer, JSON.stringify(parsed, null, 2), function () { syncCard(id, name); }, id);
     }
     function toggleCard(id) { var b = document.getElementById('body_' + id), c = document.getElementById('chev_' + id); var open = b.classList.toggle('open'); c.classList.toggle('open', open); }
     function expandAll() { entityCards.forEach(function (e) { document.getElementById('body_' + e.id).classList.add('open'); document.getElementById('chev_' + e.id).classList.add('open'); }); }
     function collapseAll() { entityCards.forEach(function (e) { document.getElementById('body_' + e.id).classList.remove('open'); document.getElementById('chev_' + e.id).classList.remove('open'); }); }
-    function updateLineNumbers(id) { var ta = document.getElementById(id); var ln = document.getElementById(id + '_ln'); if (!ta || !ln) return; var lines = ta.value.split(/\n/).length || 1; ln.textContent = Array.from({ length: lines }, function (_, i) { return i + 1; }).join('\n'); }
     function openJsonMax(id, name) {
       var body = document.getElementById('body_' + id);
-      var ta = document.getElementById('json_' + id);
-      if (!body || !ta) return;
+      var editor = entityJsonEditors[id];
+      if (!body) return;
       body.classList.toggle('maximized');
-      if (body.classList.contains('maximized')) {
-        ta.style.height = 'calc(100vh - 220px)';
-        ta.style.minHeight = 'calc(100vh - 220px)';
-        ta.focus();
-      } else {
-        ta.style.height = '';
-        ta.style.minHeight = '120px';
-      }
+      var container = document.getElementById('json_' + id);
+      if (container) container.classList.toggle('tall', body.classList.contains('maximized'));
+      setTimeout(function () { if (editor) { editor.layout(); editor.focus(); } }, 0);
     }
     function removeCard(id, name) {
       var c = document.getElementById(id); if (c) c.remove();
+      if (entityJsonEditors[id]) { entityJsonEditors[id].dispose(); delete entityJsonEditors[id]; }
       entityCards = entityCards.filter(function (e) { return e.id !== id; });
       delete ctx[name];
       if (!entityCards.length) document.getElementById('entityList').innerHTML = '<div style="font-size:.78rem;color:var(--muted)">No entities yet. Paste JSON above and click Import.</div>';
@@ -879,24 +902,31 @@
     }
     function clearAll() {
       document.getElementById('entityList').innerHTML = '<div style="font-size:.78rem;color:var(--muted)">No entities yet. Paste JSON above and click Import.</div>';
+      Object.keys(entityJsonEditors).forEach(function (id) { entityJsonEditors[id].dispose(); });
+      entityJsonEditors = {};
       entityCards = []; ctx = {}; varsStore = {}; originalCtx = {};
       refreshCtxPreview(); refreshSlotPills();
+      disposeOutputEditors();
       document.getElementById('mergedSection').innerHTML = '';
       document.getElementById('varsSection').innerHTML = '';
     }
     function syncCard(id, name) {
-      var ta = document.getElementById('json_' + id);
-      try { ctx[name] = normalizeValue(JSON.parse(ta.value)); refreshCtxPreview(); refreshSlotPills(); setStatus('st_' + id, '', ''); }
+      var editor = entityJsonEditors[id];
+      if (!editor) return;
+      try { ctx[name] = normalizeValue(JSON.parse(editor.getValue())); refreshCtxPreview(); refreshSlotPills(); setStatus('st_' + id, '', ''); }
       catch (e) { setStatus('st_' + id, 'JSON error: ' + e.message, 'err'); }
     }
     function formatCard(id, name) {
-      var ta = document.getElementById('json_' + id);
-      try { var v = JSON.parse(ta.value); ta.value = JSON.stringify(v, null, 2); ctx[name] = normalizeValue(v); refreshCtxPreview(); setStatus('st_' + id, 'Formatted \u2713', 'ok'); }
+      var editor = entityJsonEditors[id];
+      if (!editor) return;
+      try { var v = JSON.parse(editor.getValue()); editor.setValue(JSON.stringify(v, null, 2)); ctx[name] = normalizeValue(v); refreshCtxPreview(); setStatus('st_' + id, 'Formatted \u2713', 'ok'); }
       catch (e) { setStatus('st_' + id, 'JSON error: ' + e.message, 'err'); }
     }
     function resetCard(id, name) {
+      var editor = entityJsonEditors[id];
+      if (!editor) return;
       var fresh = { '$entityTypeName$': name };
-      document.getElementById('json_' + id).value = JSON.stringify(fresh, null, 2);
+      editor.setValue(JSON.stringify(fresh, null, 2));
       ctx[name] = normalizeValue(fresh); refreshCtxPreview(); setStatus('st_' + id, 'Reset \u2713', 'ok');
     }
 
@@ -981,6 +1011,7 @@
       if (!Object.keys(ctx).length) { setRunStatus('\u26a0 Add at least one entity first', 'err'); return; }
       var mergedEl = document.getElementById('mergedSection');
       var varsEl = document.getElementById('varsSection');
+      disposeOutputEditors();
       mergedEl.innerHTML = ''; varsEl.innerHTML = '';
 
       var targets = targetRows.map(function (id) {
@@ -1017,8 +1048,11 @@
         if (parsed.type === 'var') {
           varsStore[parsed.name] = clean;
           var vcard = document.createElement('div'); vcard.className = 'card';
-          vcard.innerHTML = '<div class="card-title">Variable \u2192 <code>@' + esc(parsed.name) + '</code></div><div class="card-sub">Stored separately from entity context.</div><div class="code-out">' + esc(JSON.stringify(clean, null, 2)) + '</div>';
+          vcard.innerHTML = '<div class="card-title">Variable \u2192 <code>@' + esc(parsed.name) + '</code></div><div class="card-sub">Stored separately from entity context.</div>';
+          var vOut = document.createElement('div'); vOut.className = 'json-editor-container output';
+          vcard.appendChild(vOut);
           varsEl.appendChild(vcard);
+          createJsonViewer(vOut, clean);
           return;
         }
         var path = parsed.field ? parsed.entity + '.' + parsed.field : parsed.entity;
@@ -1028,14 +1062,17 @@
         changedEntities[parsed.entity] = true;
         var previewMerged = getCtxValue(path);
         var card = document.createElement('div'); card.className = 'card';
-        card.innerHTML = '<div class="card-title">Merged \u2192 <code>' + esc(item.target) + '</code></div><div class="card-sub">Expression result merged into target.</div><div class="code-out">' + esc(JSON.stringify(toPlain(previewMerged), null, 2)) + '</div>';
+        card.innerHTML = '<div class="card-title">Merged \u2192 <code>' + esc(item.target) + '</code></div><div class="card-sub">Expression result merged into target.</div>';
+        var mOut = document.createElement('div'); mOut.className = 'json-editor-container output';
+        card.appendChild(mOut);
         mergedEl.appendChild(card);
+        createJsonViewer(mOut, toPlain(previewMerged));
       });
 
       entityCards.forEach(function (ec) {
         if (!changedEntities[ec.name]) return;
-        var ta = document.getElementById('json_' + ec.id);
-        if (ta && ctx[ec.name]) ta.value = JSON.stringify(toPlain(ctx[ec.name]), null, 2);
+        var editor = entityJsonEditors[ec.id];
+        if (editor && ctx[ec.name]) editor.setValue(JSON.stringify(toPlain(ctx[ec.name]), null, 2));
       });
       refreshCtxPreview(); refreshSlotPills();
       if (!anyErr) setRunStatus('Ran successfully \u2713', 'ok');
@@ -1105,6 +1142,44 @@
         });
       }
       monacoLoadPromise.then(cb);
+    }
+    function isDarkTheme() { return document.documentElement.getAttribute('data-theme') === 'dark'; }
+    function createJsonEditor(container, value, onChange, regId) {
+      ensureMonaco(function () {
+        var editor = monaco.editor.create(container, {
+          value: value,
+          language: 'json',
+          theme: isDarkTheme() ? 'vs-dark' : 'vs',
+          automaticLayout: true,
+          minimap: { enabled: false },
+          fontSize: 12,
+          fontFamily: "'IBM Plex Mono', monospace",
+          scrollBeyondLastLine: false
+        });
+        if (onChange) editor.onDidChangeModelContent(function () { onChange(editor.getValue()); });
+        if (regId) entityJsonEditors[regId] = editor;
+        container.__editor = editor;
+      });
+    }
+    function createJsonViewer(container, value) {
+      ensureMonaco(function () {
+        var editor = monaco.editor.create(container, {
+          value: JSON.stringify(value, null, 2),
+          language: 'json',
+          theme: isDarkTheme() ? 'vs-dark' : 'vs',
+          automaticLayout: true,
+          readOnly: true,
+          minimap: { enabled: false },
+          fontSize: 12,
+          fontFamily: "'IBM Plex Mono', monospace",
+          scrollBeyondLastLine: false
+        });
+        outputEditors.push(editor);
+      });
+    }
+    function disposeOutputEditors() {
+      outputEditors.forEach(function (ed) { try { ed.dispose(); } catch (e) { } });
+      outputEditors = [];
     }
     function openExprModal(textareaId) {
       var src = document.getElementById(textareaId);
